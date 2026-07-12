@@ -218,6 +218,35 @@ WHERE created_at > '2024-01-01'                      ❌
 WHERE status = 'active' AND created_at > '2024-01-01'  ❌
 ```
 
+### Pattern 3.5: PG18 Skip Scan과 인덱스 통합 기준
+
+PostgreSQL 18의 B-tree skip scan은 `(a, b)` 복합 인덱스에서 선두 컬럼 `a` 조건 없이
+`WHERE b = ...`를 처리할 수 있게 한다. 플래너가 비용 기반으로 자동 선택하며
+**켜고 끄는 GUC는 존재하지 않는다.**
+
+**동작 원리와 한계:** skip scan은 `a`의 distinct 값마다 인덱스를 다시 하강한다.
+따라서 이득은 `a`의 카디널리티가 낮을 때(대략 수십 이하)에 국한된다.
+`a`의 distinct 값이 많으면 사실상 인덱스 전체를 훑게 되어, 플래너가 seq scan을
+선택하거나 단일 컬럼 인덱스 대비 크게 느려진다.
+
+**단일 컬럼 인덱스를 복합 인덱스로 통합하기 전 체크리스트:**
+
+```sql
+-- 1. 선두 컬럼의 카디널리티 확인 (낮을 때만 skip scan 후보)
+SELECT attname, n_distinct FROM pg_stats
+WHERE tablename = 'users' AND attname = 'status';
+
+-- 2. 통합 후보 인덱스만 남긴 상태를 가정하고 실제 플랜 확인
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT * FROM users WHERE email = 'x@example.com';
+-- PG18의 "Index Searches: N"이 n_distinct(선두 컬럼) 수준이면 skip scan 동작 중
+
+-- 3. 삭제 전 벤치마크로 동등 성능 확인. 조회 회귀가 있으면 단일 인덱스 유지.
+--    삭제는 되돌릴 수 있게: DROP INDEX CONCURRENTLY, 롤백은 재생성 SQL 준비.
+```
+
+통계와 벤치마크 없이 "PG18이니 단일 컬럼 인덱스를 지워도 된다"고 일반화하지 말 것.
+
 ### Pattern 4: Expression Index
 
 **목표:** 함수나 표현식을 사용하는 쿼리 최적화
@@ -271,8 +300,8 @@ CREATE INDEX idx_data_id ON documents((data->>'id'));
 -- 사용되지 않는 인덱스 찾기
 SELECT
   schemaname,
-  tablename,
-  indexname,
+  relname,
+  indexrelname,
   idx_scan,
   pg_size_pretty(pg_relation_size(indexrelid)) AS size
 FROM pg_stat_user_indexes
@@ -410,8 +439,8 @@ INCLUDE (amount, created_at, status);
 -- 인덱스 bloat 확인
 SELECT
   schemaname,
-  tablename,
-  indexname,
+  relname,
+  indexrelname,
   pg_size_pretty(pg_relation_size(indexrelid)) AS index_size,
   idx_scan,
   idx_tup_read,

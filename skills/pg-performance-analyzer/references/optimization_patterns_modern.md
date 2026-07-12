@@ -78,9 +78,13 @@ INCLUDE (amount, status);
 
 **해결책:**
 ```sql
--- 1. work_mem 동적 증가
-SET work_mem = '512MB';  -- 연결 단위
-SET work_mem = '1GB';    -- 복잡한 쿼리용
+-- 1. work_mem은 해당 쿼리에서만 증가 (트랜잭션 종료 시 자동 복원)
+--    work_mem은 쿼리당이 아니라 정렬/해시 "연산마다" 소비될 수 있으므로
+--    전역 상향은 동시 세션 x 연산 수만큼 곱해져 메모리 고갈 위험이 있다.
+BEGIN;
+SET LOCAL work_mem = '256MB';
+-- ... 스필이 확인된 쿼리 실행 ...
+COMMIT;
 
 -- 2. 쿼리 재작성으로 정렬 제거
 -- Before: ORDER BY + LIMIT
@@ -317,8 +321,8 @@ ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
 ```sql
 SELECT
   schemaname,
-  tablename,
-  indexname,
+  relname,
+  indexrelname,
   idx_scan,
   idx_tup_read,
   idx_tup_fetch,
