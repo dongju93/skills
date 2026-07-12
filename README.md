@@ -23,12 +23,45 @@ npx skills add dongju93/skills --list
 npx skills add dongju93/skills
 ```
 
-Codex에 특정 스킬을 전역 설치합니다.
+특정 스킬을 에이전트에 전역으로 설치합니다. `-a`로 대상 에이전트를 지정합니다.
 
 ```bash
+# Codex
 npx skills add dongju93/skills --skill pg-performance-analyzer -g -a codex
 npx skills add dongju93/skills --skill python-secure-coding -g -a codex
+
+# Claude Code
+npx skills add dongju93/skills --skill pg-performance-analyzer -g -a claude-code
+npx skills add dongju93/skills --skill python-secure-coding -g -a claude-code
+
+# Cursor
+npx skills add dongju93/skills --skill pg-performance-analyzer -g -a cursor
+npx skills add dongju93/skills --skill python-secure-coding -g -a cursor
+
+# OpenCode
+npx skills add dongju93/skills --skill pg-performance-analyzer -g -a opencode
+npx skills add dongju93/skills --skill python-secure-coding -g -a opencode
 ```
+
+여러 에이전트에 한 번에 설치할 수도 있습니다.
+
+```bash
+npx skills add dongju93/skills --skill pg-performance-analyzer -g -a codex -a claude-code -a cursor -a opencode
+npx skills add dongju93/skills --skill python-secure-coding -g -a codex -a claude-code -a cursor -a opencode
+```
+
+### Grok Build
+
+`skills` CLI에 `-a grok` 옵션이 없어, 스킬을 `~/.grok/skills/`에 직접 둡니다.
+
+```bash
+git clone --depth 1 https://github.com/dongju93/skills.git /tmp/dongju93-skills
+mkdir -p ~/.grok/skills
+cp -R /tmp/dongju93-skills/skills/pg-performance-analyzer ~/.grok/skills/
+cp -R /tmp/dongju93-skills/skills/python-secure-coding ~/.grok/skills/
+```
+
+프로젝트 범위로만 쓰려면 저장소 루트의 `.grok/skills/`에 같은 방식으로 복사합니다. Grok Build는 기본적으로 `~/.claude/skills/`와 `~/.cursor/skills/`도 읽으므로, 위 Claude Code·Cursor 전역 설치만으로도 사용할 수 있습니다.
 
 ## Usage
 
