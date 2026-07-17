@@ -1,326 +1,100 @@
-## 제6절 캡슐화
+# 제6절 캡슐화 — 2026 재구성
 
-중요한 데이터 또는 기능성을 불충분하게 캡슐화하거나 잘못 사용함으로써 발생하는 보안약점으로 정보노출,
+이 파일은 KISA 「Python 시큐어코딩 가이드」(2023)의 제6절을 2026년 7월 기준으로 교체한 정본이다. 배열뿐 아니라 모든 가변 객체와 요청·사용자·tenant·task 사이 상태 격리를 포함한다.
 
-권한 문제 등이 발생할 수 있다.
+## 목차
 
-### 1. 잘못된 세션에 의한 데이터 정보 노출
+1. 잘못된 세션·공유 상태에 의한 정보 노출
+2. 제거되지 않고 남은 디버그 코드
+3. Public 메소드에서 반환된 Private 가변 객체
+4. Private 가변 객체에 Public 데이터 할당
 
-**가. 개요**
+## 1. 잘못된 세션·공유 상태에 의한 정보 노출 (CWE-362, CWE-488)
 
-다중 스레드 환경에서는 싱글톤(Singleton) 객체 필드에 경쟁조건(Race Condition)이 발생할 수 있다. 따라서 다중 스레드 환경에서는 정보를 저장하는 전역 변수가 포함되지 않도록 코드를 작성해 서로 다른 세션에서
+module global, class variable, singleton, 재사용 worker와 cache에 요청별 데이터를 저장하면 다른 사용자·tenant의 응답에 섞이거나 경쟁조건이 발생할 수 있다.
 
-데이터를 공유하지 않도록 해야 한다.
+### 우선 확인
 
-**나. 안전한 코딩기법**
+- 클래스 변수나 module global에 현재 사용자·요청·토큰을 저장하는 코드
+- mutable default argument와 process-local cache
+- async task·thread·greenlet 사이 context 전파
+- tenant가 cache key, connection state, temporary path에서 누락된 코드
+- object pool에 반환하기 전 상태를 초기화하지 않는 코드
 
-싱글톤 패턴을 사용하는 경우 변수 범위(Scope)에 주의를 기울여야 한다. 특히 다중 스레드 환경에서 클래스
+### 안전한 코딩기법
 
-변수의 값은 하위 메소드와 공유되므로 필요한 경우 인스턴스 변수로 선언하여 사용한다.
+- 요청 상태는 함수 인자, 요청 객체 또는 수명이 명확한 context에 둔다.
+- cache·temporary object·idempotency key에 사용자·tenant·권한 범위를 포함한다.
+- `contextvars`를 사용할 때 task 생성과 background execution의 context 복사 범위를 확인한다.
+- connection·serializer·client 재사용 객체에 사용자 데이터를 남기지 않는다.
+- process-local lock·cache가 다중 worker·host에서 전역 일관성을 제공한다고 가정하지 않는다.
 
-**다. 코드예제**
+동시에 다른 tenant의 요청을 반복하고 worker·connection 재사용 후 데이터 혼합을 테스트한다.
 
-다중 스레드 환경에서 파이썬의 클래스 변수는 스레드 간 서로 공유하게 된다. 클래스 변수에 값을 할당할 경우 서로 다른 세션 간에 데이터가 공유되어 의도하지 않은 데이터가 전달될 수 있다.
+## 2. 제거되지 않고 남은 디버그 코드 (CWE-489)
 
-**❌ 안전하지 않은 코드 예시**
+debug endpoint, interactive debugger, test bypass, 임시 관리자 계정, `breakpoint()`, verbose trace와 feature flag가 운영에 남으면 인증 우회·코드 실행·정보 노출로 이어질 수 있다.
 
-```python
-from django.shortcuts import render
+### 안전한 코딩기법
 
-class UserDescription:
- user_name = ''
+- 운영 build·설정에서 debugger와 debug route를 제거한다.
+- `DEBUG`, `TESTING`, bypass header와 hidden query parameter를 코드·설정·배포 manifest에서 검색한다.
+- debug 기능이 필요하면 별도 관리 plane, 강한 인증, 네트워크 제한과 감사 로그를 적용한다.
+- assertion을 보안 검증에 사용하지 않는다. 최적화 모드에서 제거될 수 있다.
+- test key·fixture account·개발 CA를 운영 이미지와 secret store에 포함하지 않는다.
+- release pipeline에서 debug 설정과 알려진 표식을 검사한다.
 
- def get_user_profile(self):
+운영과 동일한 아티팩트·환경변수로 직접 endpoint와 framework 기본 debugger를 확인한다.
 
-  result = self.get_user_discription(UserDescription.user_name)
-  ......
-  return result
+## 3. Public 메소드에서 반환된 Private 가변 객체 (CWE-495)
 
- def show_user_profile(self, request):
-  # 클래스변수는 다른 세션과 공유되는 값이기 때문에 멀티스레드
+내부 list·dict·set·bytearray 또는 중첩 객체의 참조를 그대로 반환하면 호출자가 검증·불변식·권한 경계를 우회해 상태를 변경할 수 있다.
 
-  # 환경에서 공유되지 않아야 할 자원을 사용하는 경우
-  # 다른 스레드 세션에 의해 데이터가 노출될 수 있다
-  UserDescription.user_name = request.POST.get('name', '')
-  self.user_profile = self.get_user_profile()
+### 안전한 코딩기법
 
-  return render(request, 'profile.html', {'profile':self.user_profile})
-```
-
-공유가 금지된 변수는 인스턴스 변수로 선언하여 세션 간에 공유되지 않도록 한다.
-
-**✅ 안전한 코드 예시**
-
-```python
-from django.shortcuts import render
-
-class UserDescription:
- def get_user_profile(self):
-  result = self.get_user_discription(self.user_name)
-  ......
-  return result
-
- def show_user_profile(self, name):
-  # 인스턴스 변수로 사용해 스레드 간 공유되지 않도록 한다
-  self.user_name = request.POST.get('name', '')
-  self.user_profile = self.get_user_profile()
-
-  return render(request, 'profile.html', {'profile':self.user_profile})
-```
-
-**라. 참고자료**
-
-- ① CWE-488: Exposure of Data Element to Wrong Session, MITRE,
-  https://cwe.mitre.org/data/definitions/488.html
-
-- ② CWE-543: Use of Singleton Pattern Without Synchronization in a Multithreaded Context, MITRE,
-  https://cwe.mitre.org/data/definitions/543.html
-
-➂ The global statement, Python Software Foundation, https://docs.python.org/3/reference/simple_stmts.html#global
-
-### 2. 제거되지 않고 남은 디버그 코드
-
-**가. 개요**
-
-디버깅 목적으로 삽입된 코드는 개발이 완료되면 제거해야 한다. 디버그 코드는 설정 등의 민감한 정보 또는 의도하지 않은 시스템 제어로 이어질 수 있는 정보를 담고 있을 수 있다. 만일 디버그 코드가 남겨진 채로
-
-배포될 경우 공격자가 식별 과정을 우회하거나 의도하지 않은 정보 노출로 이어질 수 있다.
-
-Django 프레임워크, Flask 프레임워크는 전역 수준에서 DEBUG 모드를 설정할 수 있다. DEBUG 모드를 사용하면 브라우저에서 임의의 파이썬 코드를 실행할 수도 있고 파이썬에서 발생한 모든 오류가 출력되어 정보
-
-노출의 위험이 있다. 어플리케이션을 배포 전에 반드시 DEBUG 모드를 비활성화 해야 한다.
-
-**나. 안전한 코딩기법**
-
-소프트웨어 배포 전 반드시 디버그 코드를 확인 및 삭제한다. Django 프레임워크의 경우 전역 수준에서
-
-DEBUG 모드를 비활성화 하려면 settings.py 파일에 설정을 하고 Flask 프레임워크는 app_run() 전에 debug = False로 설정하면 된다.
-
-**다. 코드예제**
-
-다음은 Django의 미들웨어 세팅 파일인 settings.py 파일 예시로, 개발 시 사용된 DEBUG 옵션이 True로 설정되어 있어 정보 노출의 위험이 있다.
-
-_가) Django 예제_
-
-**❌ 안전하지 않은 코드 예시**
+- 불변 tuple, `frozenset`, read-only view 또는 필요한 필드만 담은 immutable DTO를 반환한다.
+- 복사본이 필요하면 중첩 구조와 포함 객체까지 threat model에 맞는 깊이로 복사한다.
+- 민감 필드와 내부 식별자를 반환 모델에서 제외한다.
+- ORM object·Pydantic model·dataclass가 내부 mutable field를 공유하는지 확인한다.
+- 반환 후 내부 상태가 변경되거나 호출자의 변경이 내부에 반영되는지 테스트한다.
 
 ```python
-from django.urls import reverse_lazy
-from django.utils.text import format_lazy
-
-DEBUG = True
-
-ROOT_URLCONF = 'test.urls'
-SITE_ID = 1
-
-DATABASES = {
- 'default': {
-  'ENGINE': 'django.db.backends.sqlite3',
-  'NAME': ':memory:',
- }
-}
+def allowed_scopes(self) -> tuple[str, ...]:
+    return tuple(self._allowed_scopes)
 ```
 
-개발이 끝난 소스코드를 배포 및 운영할 경우에는 반드시 DEBUG 옵션을 False로 변경해야 한다.
+얕은 복사만으로 중첩 가변 객체가 격리된다고 가정하지 않는다.
 
-**✅ 안전한 코드 예시**
+## 4. Private 가변 객체에 Public 데이터 할당 (CWE-496)
+
+외부에서 받은 list·dict·객체 참조를 내부 필드에 그대로 저장하면 호출자가 나중에 원본을 변경해 검증된 상태를 우회할 수 있다.
+
+### 안전한 코딩기법
+
+- 입력을 검증한 뒤 필요한 필드만 새 내부 객체로 구성한다.
+- 단순 값은 immutable representation으로 정규화한다.
+- 복사가 필요하면 중첩 객체, custom class와 파일·socket 같은 capability를 고려한다.
+- mutable default argument를 사용하지 않는다.
+- setter 이후 호출자가 원본을 변경해도 내부 invariant가 유지되는지 테스트한다.
 
 ```python
-
-from django.urls import reverse_lazy
-from django.utils.text import format_lazy
-
-DEBUG = False
-
-ROOT_URLCONF = 'test.urls'
-SITE_ID = 1
-
-DATABASES = {
- 'default': {
-  'ENGINE': 'django.db.backends.sqlite3',
-  'NAME': ':memory:',
- }
-}
+class Policy:
+    def __init__(self, scopes: list[str]) -> None:
+        validated = [validate_scope(scope) for scope in scopes]
+        self._scopes = tuple(validated)
 ```
 
-_나) Flask 예제_
-
-다음은 Flask의 예제로, debug 모드가 True로 설정되어 정보 노출의 위험이 있다.
-
-**❌ 안전하지 않은 코드 예시**
-
-```python
-
-from flask import Flask
-
-app = Flask(__name__)
-# 디버그 모드 설정 방법1
-app.debug = True
-
-@app.route('/')
-def hello_world():
- return 'Hello World!'
-
-if __name__ == '__main__':
- app.run()
- # 디버그 모드 설정 방법2
- app.run(debug=True)
-```
-
-마찬가지로 개발이 끝난 소스코드를 배포 및 운영 시 반드시 debug 옵션을 False로 변경해야 한다.
-
-**✅ 안전한 코드 예시**
-
-```python
-from flask import Flask
-
-app = Flask(__name__)
-app.debug = False
-
-@app.route('/')
-def hello_world():
-  return 'Hello World!'
-
-if __name__ == '__main__':
-  app.run()
-
- app.run(debug=False)
-```
-
-**라. 참고자료**
-
-- ① CWE-489: Active Debug Code, MITRE,
-  https://cwe.mitre.org/data/definitions/489.html
-
-- ② Settings, Django Software Foundation,
-  https://docs.djangoproject.com/en/3.2/ref/settings/#debug ➂ Debug Mode, Flask, https://flask.palletsprojects.com/en/2.0.x/quickstart/#debug-mode
-
-### 3. Public 메소드로부터 반환된 Private 배열
-
-**가. 개요**
-
-파이썬은 명시적인 private 선언이 없다. 하지만 대부분의 파이썬 코드가 따르는 규칙으로 이름 앞에 밑줄 (예:\_\_spam)로 시작하면 private 로 처리된다. public으로 선언된 메소드에서 배열을 반환하면 해당 배열의 참조 객체가 외부에 공개되어 외부에서 배열 수정과 객체 속성 변경이 가능해진다. 이러한 속성은 배열 뿐만
-
-아니라 변경 가능한(mutable) 모든 객체에 해당된다.
-
-구분 표시 방법 public attribute, method는 기본적으로 public
-
-attribute, method 앞에 \_(single underscore)를 붙여서 표시 함. protect 실제 제약 보다는 관례적임. attribute, method 앞에 **(double underscore)를 붙여서 표시 함. private 파이썬은 네임 맹글링(name mangling)으로 private 멤버에 \_class**member로 접근은 가능하지만 바람직하지 않음.
-
-**나. 안전한 코딩기법**
-
-private로 선언된 배열을 public으로 선언된 메소드로 반환하지 않도록 한다. private 배열에 대한 복사본을 반환하도록 하고 배열의 원소에 대해서는 clone() 메소드를 통해 복사된 원소를 저장하도록 해서 private 선언된
-
-배열과 객체 속성에 대한 의도치 않은 수정을 방지한다. 만약 배열의 원소가 String 타입 등과 같이 변경이 되지 않는 경우(immutable)에는 private 배열의 복사본을 만들고 이를 반환하도록 작성한다.
-
-**다. 코드예제**
-
-다음 예제는 private 변수를 생성하고 이를 반환하는 public 메소드를 사용하는 예시를 보여 준다. 이 경우
-
-외부에서 클래스 내에 숨겨져 있는 private 배열 값에 접근할 수 있는 문제점이 발생한다.
-
-**❌ 안전하지 않은 코드 예시**
-
-```python
-
-class UserObj:
- __private_variable = []
- def __init__(self):
-  pass
-
- # private 배열을 리턴하는 public 메소드를 사용하는 경우 취약함
- def get_private_member(self):
-
-  return self.__private_variable
-```
-
-아래 예제는 내부와 외부의 배열이 서로 참조되는 것을 예방하기 위해 [:]로 새로운 객체를 생성하여 값을 반환하고 있다.
-
-**✅ 안전한 코드 예시**
-
-```python
-
-class UserObj:
- __private_variable = []
- def __init__(self):
-  pass
-
- # private 배열을 반환하는 경우 [:]를 사용하여 외부와 내부의
- # 배열이 서로 참조되지 않도록 해야 한다
- def get_private_member(self):
-  return self.__private_variable[:]
-```
-
-**라. 참고자료**
-
-- ① CWE-495: Private Data Structure Returned From A Public Method, MITRE,
-  https://cwe.mitre.org/data/definitions/495.html
-
-- ② Do not return references to private mutable class members, CERT,
-  https://wiki.sei.cmu.edu/confluence/display/java/OBJ05-J.+Do+not+return+references+to+private+mutable
-
-+class+members
-
-- ③ Shallow and deep copy operations, Python Software Foundation,
-  https://docs.python.org/3/library/copy.html
-
-### 4. Private 배열에 Public 데이터 할당
-
-**가. 개요**
-
-public으로 선언된 메소드의 인자가 private로 선언된 배열에 저장되면 private 배열을 외부에서 접근하여
-
-배열 수정과 객체 속성 변경이 가능해진다.
-
-**나. 안전한 코딩기법**
-
-public으로 선언된 메소드의 인자를 private 로 선언된 배열에 저장하지 않도록 한다. 사용자가 전달한 값으로 클래스 외부에서 private 값을 변경해서는 안 되며, 필요한 경우 별도의 인스턴스 변수로 정의하거나 의도한
-
-기능이라면 전달된 값의 정상 여부를 검증한 후 적용해야 한다.
-
-**다. 코드예제**
-
-다음 예제는 \_\_를 이용해서 파이썬의 내부 배열을 생성하고 외부 값을 대입하는 public 메소드를 사용하는 예시를 보여 준다. 이 경우 특정 배열 타입에 따라 외부에서 private 배열을 변조할 수 있는 문제를 내포하고 있다.
-
-**❌ 안전하지 않은 코드 예시**
-
-```python
-
-class UserObj:
- __private_variable = []
- def __init__(self):
-  pass
-
- # private 배열에 외부 값을 바로 대입하는 public 메소드를 사용하는
- # 경우 취약하다
- def set_private_member(self, input_list):
-  self.__private_variable = input_list
-```
-
-아래 예제는 내부와 외부의 배열이 서로 참조되는 것을 예방하기 위해 [:]로 새로운 객체를 생성하여 값을
-
-대입하고 있다.
-
-**✅ 안전한 코드 예시**
-
-```python
-
-class UserObj:
- def __init__(self):
-  self.__privateVariable = []
-
- # private 배열에 외부 값을 바로 대입하는 경우 [:]를 사용하여
- # 외부와 내부의 배열이 서로 참조되지 않도록 해야 한다
- def set_private_member(self, input_list):
-  self.__privateVariable = input_list[:]
-```
-
-**라. 참고자료**
-
-- ① CWE-496: Public Data Assigned to Private Array-Typed Field, MITRE,
-  https://cwe.mitre.org/data/definitions/496.html
-
-- ② Shallow and deep copy operations, Python Software Foundation,
-  https://docs.python.org/3/library/copy.html
-
-➂ Private Variables, Python Software Foundation, https://docs.python.org/3/tutorial/classes.html#private-variables
+## 검증 체크리스트
+
+- [ ] 요청·사용자·tenant별 상태가 process·thread·task 재사용에서 분리되는지 확인한다.
+- [ ] cache key와 temporary resource에 필요한 보안 범위가 포함되는지 확인한다.
+- [ ] 운영 아티팩트에 debugger·bypass·test secret이 없는지 확인한다.
+- [ ] 반환값·입력 원본을 변경해도 내부 상태가 변하지 않는지 확인한다.
+- [ ] 얕은 복사와 중첩 가변 객체의 aliasing을 테스트한다.
+
+## 공식 근거
+
+- [KISA Python 시큐어코딩 가이드(2023 개정본)](https://www.kisa.or.kr/2060204/form?board_type=R&lang_type=KO&page=1&postSeq=13&skey=&sval=)
+- [Python contextvars](https://docs.python.org/3.14/library/contextvars.html)
+- [Python copy semantics](https://docs.python.org/3.14/library/copy.html)
+- [Python data model](https://docs.python.org/3.14/reference/datamodel.html)

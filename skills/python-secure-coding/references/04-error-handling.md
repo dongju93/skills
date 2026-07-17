@@ -1,272 +1,87 @@
-## 제4절 에러처리
+# 제4절 에러처리 — 2026 재구성
 
-에러를 처리하지 않거나 불충분하게 처리하여 에러 정보에 중요정보(시스템 내부정보 등)가 포함될 때 발생
+이 파일은 KISA 「Python 시큐어코딩 가이드」(2023)의 제4절을 2026년 7월 기준으로 교체한 정본이다. 사용자 오류 응답뿐 아니라 fail-open, 민감 로그, 탐지·경보와 복구 가능성을 포함한다.
 
-할 수 있는 보안약점이다.
+## 목차
 
-### 1. 오류 메시지 정보노출
+1. 오류 메시지 정보노출
+2. 오류상황 대응 부재
+3. 부적절한 예외 처리
+4. 보안 로깅과 관측
 
-**가. 개요**
+## 1. 오류 메시지 정보노출 (CWE-209)
 
-응용 프로그램이 실행환경, 사용자 등 관련 데이터에 대한 민감한 정보를 포함하는 오류 메시지를 생성해 외부에 제공하는 경우 공격자의 악성 행위로 이어질 수 있다. 예외발생 시 예외 이름이나 추적 메시지
+traceback, SQL, 파일 경로, 설정, 토큰 또는 사용자 존재 여부가 응답에 포함되면 공격 정찰과 민감정보 노출로 이어질 수 있다.
 
-(traceback)를 출력하는 경우 프로그램 내부 구조를 쉽게 파악할 수 있기 때문이다. Django 프레임워크와 Flask 프레임워크는 HTTP 오류 코드가 있는 요청을 처리하기 위한 사용자 에러 페이지
+### 안전한 코딩기법
 
-핸들러를 제공한다.
+- 사용자에게 안정된 오류 코드와 필요한 최소 설명만 제공한다.
+- 상세 원인은 접근 통제된 서버 로그에 correlation ID와 함께 기록한다.
+- 운영에서 Django `DEBUG`, Flask debugger와 대화형 exception page를 끈다.
+- 인증·복구 응답은 계정 존재, MFA 등록, 잠금 여부를 불필요하게 구분하지 않는다.
+- reverse proxy, ASGI/WSGI server, background worker의 기본 오류 페이지도 확인한다.
 
-**나. 안전한 코딩기법**
+예상 오류와 예상하지 못한 오류를 테스트해 response body·header·trace에 비밀과 내부 구조가 없는지 확인한다.
 
-오류 메시지는 정해진 사용자에게 유용한 최소한의 정보만 포함하도록 한다. 소스코드에서 예외 상황은 내부적 으로 처리하고 사용자에게 시스템 내부 정보 등 민감한 정보를 포함하는 오류를 출력하지 않고 미리 정의된
+## 2. 오류상황 대응 부재 (CWE-390)
 
-메시지를 제공하도록 설정한다. Django 프레임워크에서는 urls.py에 사용자 정의 에러 페이지 핸들러를 정의할 수 있다.
+인증서·서명·인가·파싱·무결성 검증 실패를 무시하거나 기본 허용으로 계속 실행하면 보안 통제가 우회된다.
 
-**다. 코드예제**
+### 안전한 코딩기법
 
-사용자 요청을 정상적으로 처리할 수 없는 경우 에러 페이지에 디버그 정보 또는 서버의 정보가 노출될 수 있다. 어플리케이션 배포 시 DEBUG 모드를 True로 설정하고 배포할 경우에 아래와 같이 시스템의 주요 정보가
-
-노출될 수도 있다. Django는 DEBUG 모드를 False로 배포했을 경우 아래와 같이 사용자 에러 페이지를 설정 하지 않으면 Django 기본 에러 페이지가 출력된다.
-
-**❌ 안전하지 않은 코드 예시**
-
-```python
-
-# config/urls.py
-# 별도의 에러 페이지를 선언하지 않아 django의 기본 에러 페이지를 출력한다
-```
-
-제공되는 에러 페이지 핸들러를 이용해 별도의 에러 페이지를 생성하여 사용자에게 표현하고 서버의 정보노출을 최소화해야 한다.
-
-**✅ 안전한 코드 예시**
+- 보안 결정 오류는 fail closed로 처리한다.
+- 실패 후 partial write, 임시 권한, lock, 파일과 세션을 정리한다.
+- 복구 가능한 오류와 영구 오류를 구분하고 무제한 재시도를 피한다.
+- 트랜잭션 rollback과 외부 side effect의 보상·멱등성을 설계한다.
+- 중요한 검증 실패를 메트릭·경보·incident 절차에 연결한다.
 
 ```python
-# config/urls.py
-from django.conf.urls import handler400, handler403, handler404, handler500
-
-# 사용자 정의 에러 페이지를 지정하고
-# views.py에 사용자 정의 에러 페이지에 대한 코드를 구현하여 사용한다
-handler400 = "blog.views.error400"
-handler403 = "blog.views.error403"
-handler404 = "blog.views.error404"
-
-handler500 = "blog.views.error500"
+try:
+    claims = verifier.verify(token)
+except TokenVerificationError:
+    logger.warning("token verification failed", extra={"request_id": request_id})
+    raise Unauthorized
 ```
 
-아래는 traceback을 사용하여 에러 스택을 표준 출력으로 표시해 정보가 노출되는 예제를 보여 준다.
+검증기 장애, key store timeout, 로그 저장 실패와 dependency 부분 장애 때의 동작을 확인한다.
 
-**❌ 안전하지 않은 코드 예시**
+## 3. 부적절한 예외 처리 (CWE-754)
 
-```python
+광범위한 예외를 무조건 삼키거나 정상 결과로 바꾸면 데이터 손상과 보안 실패가 숨겨진다. 반대로 `except Exception` 자체만으로 취약하다고 단정하지 않는다.
 
-import traceback
+### 안전한 코딩기법
 
-def fetch_url(url, useragent, referer=None, retries=1, dimension=False):
- ......
+- 복구 의미가 분명한 구체적 예외를 우선 처리한다.
+- 경계 계층에서 광범위한 예외를 잡을 때 로그, rollback, 안전한 응답과 재발생 정책을 명시한다.
+- `except: pass`, 빈 fallback, 성공 status 반환을 피한다.
+- `BaseException`, `KeyboardInterrupt`, `SystemExit`, async cancellation을 부주의하게 삼키지 않는다.
+- 예외 메시지 문자열을 프로그램 분기 조건으로 사용하지 않는다.
+- cleanup은 `with`, `async with`, `try/finally`로 보장한다.
 
- try:
-  response = requests.get(
-   url,
-   stream=True,
-   timeout=5,
-   headers={ 'User-Agent': useragent, 'Referer': referer },
+## 4. 보안 로깅과 관측 (CWE-117, CWE-223, CWE-532)
 
-  )
-  ......
- except IOError:
-  # 에러메시지를 통해 스택 정보가 노출.
-  traceback.print_exc()
-```
+로그가 없으면 공격을 탐지·조사하기 어렵고, 과도한 로그는 비밀·개인정보를 노출하거나 로그 위조를 허용한다.
 
-오류 처리 시 아래와 같이 에러 이름이나 에러 추적 정보가 노출되지 않도록 한다.
+### 안전한 코딩기법
 
-**✅ 안전한 코드 예시**
+- 인증 실패, 권한 거부, 관리자 변경, 비밀 접근, 검증 실패와 비정상 트래픽을 구조화해 기록한다.
+- 비밀번호, 토큰, 세션 쿠키, 키, 전체 요청 본문과 불필요한 개인정보를 기록하지 않는다.
+- 외부 문자열의 CR/LF와 제어 문자를 구조화 로깅 경계에서 처리한다.
+- timestamp, actor, action, target, result, request/correlation ID를 포함하되 위조 가능한 클라이언트 값과 구분한다.
+- 로그 저장소의 접근, 보존, 무결성, 시간 동기화와 삭제 정책을 설정한다.
+- 실패율·분산 로그인·권한 거부 급증에 임계값과 대응 책임자를 연결한다.
 
-```python
-import logging
+## 검증 체크리스트
 
-def fetch_url(url, useragent, referer=None, retries=1, dimension=False):
- ......
- try:
-  response = requests.get(url, stream=True, timeout=5, headers={
-   'User-Agent': useragent,
+- [ ] 운영 설정에서 상세 오류와 debugger가 비활성화됐는지 확인한다.
+- [ ] 보안 검증·dependency 실패가 성공 경로로 전환되지 않는지 확인한다.
+- [ ] 예외 후 transaction, lock, connection과 임시 자원이 정리되는지 확인한다.
+- [ ] 로그에 필요한 보안 이벤트는 있고 비밀·개인정보는 없는지 확인한다.
+- [ ] 경보가 실제 운영 채널에 도달하고 조사에 필요한 식별자가 연결되는지 확인한다.
 
-   'Referer': referer,
-  })
- ......
- except IOError:
-  # 에러 코드와 정보를 별도로 정의하고 최소 정보만 로깅
-  logger.error('ERROR-01:통신에러')
-```
+## 공식 근거
 
-**라. 참고자료**
-
-- ① CWE-209: Generation of Error Message Containing Sensitive Information, MITRE
-  https://cwe.mitre.org/data/definitions/209.html
-
-- ② Improper Error Handling, OWASP,
-  https://owasp.org/www-community/Improper_Error_Handling
-
-- ③ Errors and Exceptions, Python Software Foundation,
-  https://docs.python.org/3/tutorial/errors.html ➃ Django Error views, Django Software Foundation, https://docs.djangoproject.com/en/3.2/ref/views/#error-views
-
-➄ Flask Error Handlers, Flask https://flask.palletsprojects.com/en/2.0.x/errorhandling/#error-handlers
-
-### 2. 오류상황 대응 부재
-
-**가. 개요**
-
-오류가 발생할 수 있는 부분을 확인하였으나 이러한 오류에 대해 예외 처리를 하지 않을 경우 공격자는 오류
-
-상황을 악용해 개발자가 의도하지 않은 방향으로 프로그램이 동작하도록 할 수 있다.
-
-예외처리는 코드를 견고하게 만들고 프로그램 제어 실패로 인해 의도치 않은 중단으로 이어지는 잠재적인 오류를 방지하는데 도움이 된다.
-
-**나. 안전한 코딩기법**
-
-오류가 발생할 수 있는 부분에 대하여 제어문(try-except)을 사용해 적절하게 예외 처리한다.
-
-**다. 코드예제**
-
-다음 예제는 try 블록에서 발생하는 오류를 포착(except)하고 있지만 그 오류에 대해서 아무 조치를 하지 않는 상황을 보여준다. 아무 조치가 없으므로 프로그램이 계속 실행되기 때문에 개발자가 의도하지 않은 방향
-
-으로 프로그램이 동작할 수 있다.
-
-**❌ 안전하지 않은 코드 예시**
-
-```python
-import base64
-from Crypto.Cipher import AES
-
-from Crypto.Util.Padding import pad
-
-static_keys=[
- {'key' : b'\xb9J\xfd\xa9\xd2\xefD\x0b\x7f\xb2\xbcy\x9c\xf7\x9c',
- 'iv' : b'\xf1BZ\x06\x03TP\xd1\x8a\xad"\xdc\xc3\x08\x88\xda'},
- {'key' : b'Z\x01$.:\xd4u3~\xb6TS(\x08\xcc\xfc',
-
- 'iv' : b'\xa1a=:\xba\xfczv]\xca\x83\x9485\x14\x17'},
-]
-
-def encryption(key_id, plain_text):
- static_key = {'key':b'0000000000000000', 'iv':b'0000000000000000'}
-
- try:
-  static_key = static_keys[key_id]
- except IndexError:
-  # key 선택 중 오류 발생 시 기본으로 설정된 암호화 키인
-  # '0000000000000000' 으로 암호화가 수행된다.
-
-  pass
-
- cipher_aes = AES.new(static_key['key'],AES.MODE_CBC,static_key['iv'])
- encrypted_data = base64.b64encode(cipher_aes.encrypt(pad(plain_text.encode(), 32)))
- return encrypted_data.decode('ASCII')
-```
-
-예외상황 발생 시에 프로그램이 개발자의 의도와 다르게 동작하지 않도록 반드시 예외 처리 구문을 추가해야 한다.
-
-**✅ 안전한 코드 예시**
-
-```python
-import base64
-from Crypto.Cipher import AES
-
-from Crypto.Util.Padding import pad
-
-static_keys=[
- {'key' : b'\xb9J\xfd\xa9\xd2\xefD\x0b\x7f\xb2\xbcy\x9c\xf7\x9c',
- 'iv' : b'\xf1BZ\x06\x03TP\xd1\x8a\xad"\xdc\xc3\x08\x88\xda'},
- {'key' : b'Z\x01$.:\xd4u3~\xb6TS(\x08\xcc\xfc',
-
-  'iv' : b'\xa1a=:\xba\xfczv]\xca\x83\x9485\x14\x17'},
- ]
-
- def encryption(key_id, plain_text):
- static_key = {'key':b'0000000000000000', 'iv':b'0000000000000000'}
-
- try:
-  static_key = static_keys[key_id]
- except IndexError:
-  # key 선택 중 오류 발생 시 랜덤으로 암호화 키를 생성하도록 설정
-  static_key = {'key': secrets.token_bytes(16), 'iv': secrets.token_bytes(16)}
-
-  static_keys.append(static_key)
-
- cipher_aes = AES.new(static_key['key'],AES.MODE_CBC,static_key['iv'])
- encrypted_data = base64.b64encode(cipher_aes.encrypt(pad(plain_text.encode(), 32)))
- return encrypted_data.decode('ASCII')
-```
-
-**라. 참고자료**
-
-- ① CWE-390: Detection of Error Condition Without Action, MITRE,
-  https://cwe.mitre.org/data/definitions/390.html
-
-- ② Errors and Exceptions, Python Software Foundation,
-  https://docs.python.org/3/tutorial/errors.html
-
-➂ Built-in Exceptions, Python Software Foundation, https://docs.python.org/3/library/exceptions.html
-
-### 3. 부적절한 예외 처리
-
-**가. 개요**
-
-프로그램 수행 중에 함수의 결과 값에 대한 적절한 처리 또는 예외 상황에 대한 조건을 적절하게 검사 하지
-
-않을 경우 예기치 않은 문제를 야기할 수 있다.
-
-**나. 안전한 코딩기법**
-
-값을 반환하는 모든 함수의 결과값을 검사해야 한다. 결과값이 개발자가 의도했던 값인지 검사하고 예외 처리를 사용하는 경우에 광범위한 예외 처리 대신 구체적인 예외 처리를 수행한다.
-
-**다. 코드예제**
-
-다음 예제는 다양한 예외가 발생할 수 있음에도 불구하고 광범위한 예외 처리로 예외상황에 따른 적절한 조치가 부적절한 사례를 보여 준다.
-
-**❌ 안전하지 않은 코드 예시**
-
-```python
-import sys
-
-def get_content():
- try:
-  f = open('myfile.txt')
-  s = f.readline()
-  i = int(s.strip())
-
- # 예외처리를 세분화 할 수 있음에도 광범위하게 사용하여 예기치 않은
- # 문제가 발생할 수 있다
- except:
-  print("Unexpected error ")
-```
-
-다음은 발생 가능한 예외를 세분화한 후 예외상황에 따라 적합한 처리한 예시를 보여 준다.
-
-**✅ 안전한 코드 예시**
-
-```python
-def get_content():
- try:
-
-  f = open('myfile.txt')
-  s = f.readline()
-  i = int(s.strip())
-
- # 발생할 수 있는 오류의 종류와 순서에 맞춰서 예외 처리 한다.
- except FileNotFoundError:
-
-  print("file is not found")
- except OSError:
-  print("cannot open file")
- except ValueError:
-  print("Could not convert data to an integer.")
-```
-
-**라. 참고자료**
-
-- ① CWE-754: Improper Check for Unusual or Exceptional Conditions, MITRE,
-  https://cwe.mitre.org/data/definitions/754.html
-
-- ② Errors and Exceptions, Python Software Foundation,
-  https://docs.python.org/3/tutorial/errors.html
-
-➂ Built-in Exceptions, Python Software Foundation, https://docs.python.org/3/library/exceptions.html
+- [KISA Python 시큐어코딩 가이드(2023 개정본)](https://www.kisa.or.kr/2060204/form?board_type=R&lang_type=KO&page=1&postSeq=13&skey=&sval=)
+- [Python errors and exceptions](https://docs.python.org/3.14/tutorial/errors.html)
+- [OWASP Error Handling Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html)
+- [OWASP Logging Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html)
