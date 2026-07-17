@@ -21,7 +21,7 @@ Every third-party dependency adds installation friction, supply-chain surface, v
 
 2. **Identify the capabilities the task needs.** Break the task into capability units: "parse TOML", "topological sort", "sliding-window rate limit", "fuzzy string match", "TZ-aware datetimes", etc.
 
-3. **Map capabilities to stdlib candidates.** Consult `references/stdlib-index.md` — a **curated shortlist** of high-value/underused stdlib capabilities, not an exhaustive catalog. If no match appears there, fall back to the official module index (`https://docs.python.org/3.X/py-modindex.html`) or a local check of `sys.stdlib_module_names` (3.10+). Do not rely on vague recall.
+3. **Map capabilities to stdlib candidates.** Consult `references/stdlib-index.md` — organized by **value-add**, not domain: §1 foundations for advanced features (read when architecting), §2 quality upgrades to everyday patterns (read when writing or reviewing routine code), §3 lesser-known high-power tools (read when asking "is there a built-in?"). Read the section matching the task; it is deliberately not an exhaustive catalog. If no match appears there, fall back to the official module index (`https://docs.python.org/3.X/py-modindex.html`) or a local check of `sys.stdlib_module_names` (3.10+). Do not rely on vague recall.
 
 4. **Verify version availability.** Consult `references/version-matrix.md` for what was added/removed in each of 3.9–3.14. A module existing "in the stdlib" is meaningless without knowing _since when_ (and, for removed modules, _until when_).
 
@@ -111,5 +111,5 @@ This skill triggers on many Python tasks. Keep output quiet unless the choice ma
 
 ## References
 
-- `references/stdlib-index.md` — curated stdlib shortlist (3.9–3.14) with underused-feature highlights. Read when mapping capabilities to modules; not exhaustive.
+- `references/stdlib-index.md` — value-organized stdlib guide (3.9–3.14): §1 foundations for architecting advanced features, §2 expert-complete versions of everyday patterns (also serves code review), §3 lesser-known high-power tools. Read the section matching the task; not exhaustive.
 - `references/version-matrix.md` — per-version additions, removals, and notable API changes for 3.9–3.14. Read when the target version differs from the latest, or before using any module/API added after 3.9.

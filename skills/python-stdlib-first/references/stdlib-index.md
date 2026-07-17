@@ -1,171 +1,196 @@
 # Standard Library Index (Python 3.9–3.14)
 
-**Curated shortlist**, not an exhaustive catalog. Use it to map common task capabilities to high-value or underused stdlib modules. One-line summaries only — fetch `https://docs.python.org/3.X/library/{module}.html` for exact APIs, or use local `pydoc` / import checks when offline. Version tags like `(3.11+)` mean "added in that version"; untagged items exist across 3.9–3.14.
+**Curated by value-add, not by domain.** A competent developer — or model — already reaches for `json`, `re`, `pathlib`, `collections`, and `argparse` unprompted, so those earn no entries here. Every entry below is a _delta_: something that changes the output compared to the habitual version.
 
-If nothing here matches, fall back to:
+Pick the section that matches the task:
 
-- Official module name index: `https://docs.python.org/3.X/py-modindex.html`
-- Library index: `https://docs.python.org/3.X/library/index.html`
-- Local definitive list (3.10+): `python -c "import sys; print(sorted(sys.stdlib_module_names))"`
+| Task shape                                                              | Read                                    |
+| ----------------------------------------------------------------------- | --------------------------------------- |
+| Designing something advanced (service, framework, pipeline, plugin API) | §1                                      |
+| Writing or reviewing everyday code (files, subprocess, logging, time)   | §2                                      |
+| "Is there a built-in for X?" / replacing a dependency                   | §3 + the substitution table in SKILL.md |
 
-**Table of contents**
-
-1. Text, encodings, and data formats
-2. Data structures and algorithms
-3. Functional tools and iteration
-4. Numbers, math, and statistics
-5. Dates and times
-6. Files, paths, and filesystems
-7. Persistence and databases
-8. Compression and archiving
-9. Cryptography and security
-10. Concurrency and processes
-11. Networking and internet data
-12. CLI, terminal, and configuration
-13. Testing, debugging, and profiling
-14. Typing, introspection, and runtime
-15. FFI and C API
+One-line summaries only — fetch `https://docs.python.org/3.X/library/{module}.html` for exact APIs. Version tags like `(3.11+)` mean "added in that version"; untagged items exist across 3.9–3.14. If nothing here matches: the official module index `https://docs.python.org/3.X/py-modindex.html`, or locally `python -c "import sys; print(sorted(sys.stdlib_module_names))"` (3.10+).
 
 ---
 
-## 1. Text, encodings, and data formats
+## 1. Foundations — primitives to build advanced features on
 
-- `string` — constants, `Template` ($-substitution); `string.templatelib` (3.14+) for t-string `Template`/`Interpolation` processing (PEP 750).
-- `re` — regex; note `re.Match` supports `[]` group access; possessive quantifiers and atomic groups added in 3.11.
-- `difflib` — diffs and **fuzzy matching**: `get_close_matches()`, `SequenceMatcher.ratio()` — replaces trivial uses of `thefuzz`/`rapidfuzz`.
-- `textwrap` — `dedent`, `indent`, `shorten`, `fill` — replaces manual string-wrangling helpers.
-- `unicodedata` — normalization (`NFC`/`NFKD`), category lookup — the correct tool for "strip accents" tasks.
-- `json` — parsing/serialization; `object_hook`, `default=`, `json.tool` CLI (color output in 3.14).
-- `csv` — `DictReader`/`DictWriter`, dialects, `Sniffer` for delimiter detection.
-- `tomllib` (3.11+) — read-only TOML parsing. No writer in stdlib.
-- `xml.etree.ElementTree` — parse/build XML, limited XPath; `iterparse` for streaming large docs. **Untrusted XML:** stdlib XML modules are not hardened against XXE/billion-laughs-class attacks — use a defused/hardened third-party parser for untrusted input (see [xml vulnerabilities](https://docs.python.org/3/library/xml.html#xml-vulnerabilities)).
-- `html.parser`, `html` — event-driven HTML parsing; `html.escape`/`unescape`.
-- `base64` — also z85 (3.13+); `binascii` — hex/CRC32; `struct` — binary (un)packing; `codecs` — incremental encoders/decoders.
-- `email.message.EmailMessage` — modern MIME construction/parsing (use this, not the legacy `email.mime.*` classes, for new code).
-- `mimetypes` — extension ↔ MIME type mapping.
+Read when architecting. Load-bearing building blocks that replace a framework or a hand-rolled subsystem.
 
-## 2. Data structures and algorithms
+### 1.1 Structured concurrency and async correctness
 
-- `collections` — `Counter` (with `most_common`, arithmetic), `defaultdict`, `deque` (O(1) ends, `maxlen` ring buffer), `ChainMap` (layered configs), `namedtuple`.
-- `heapq` — priority queues, `nlargest`/`nsmallest`, `merge` for k-way merging of sorted inputs.
-- `bisect` — binary search on sorted sequences; `key=` parameter (3.10+).
-- `array` — compact typed numeric arrays — often enough where `numpy` is overkill.
-- `graphlib` (3.9+) — `TopologicalSorter`: dependency ordering + cycle detection — replaces `networkx` for this single capability.
-- `enum` — `Enum`, `IntEnum`, `Flag`, `auto`; `StrEnum` (3.11+); `@verify`, `@member` (3.11+).
-- `dataclasses` — `field`, `__post_init__`, `slots=`/`kw_only=` (3.10+), `frozen=`, `asdict`/`astuple`, `replace`.
-- `types` — `SimpleNamespace`, `MappingProxyType` (read-only dict views).
-- `copy` — `deepcopy`; `copy.replace()` protocol (3.13+).
-- `weakref` — caches that don't block GC: `WeakValueDictionary`, `finalize`.
+- `asyncio.TaskGroup` (3.11+) — owned task lifetimes: one failure cancels siblings and surfaces as an `ExceptionGroup` (handle with `except*`). Also fixes the bare-`create_task` bug where an unreferenced task can be garbage-collected mid-flight. Default over `gather` for new code.
+- `asyncio.timeout` (3.11+) — cancellation-correct deadlines as a context manager; supersedes `wait_for` wrapping.
+- `contextvars` — request-scoped state that survives `await` (correlation IDs, auth context). `threading.local` silently breaks under async; this is what tracing and logging context ride on.
+- `asyncio.to_thread` (3.9+) — the one-line bridge for blocking calls inside async code; a blocking call in a coroutine stalls the whole event loop.
+- `queue.Queue` / `asyncio.Queue` — producer/consumer backbone: `task_done()`/`join()` for completion, `Queue.shutdown()` (3.13+) or sentinels for teardown.
+- `concurrent.futures` — one `Executor` API across threads (I/O-bound), processes (CPU-bound), and subinterpreters (`InterpreterPoolExecutor`, 3.14+); `as_completed` streams results as they finish.
+- `concurrent.interpreters` (3.14+) — isolated interpreters for CSP-style parallelism without multiprocessing's serialization overhead.
+- `selectors` — readiness-based I/O multiplexing, the primitive event loops are built from — for when you need a custom loop, not before.
 
-## 3. Functional tools and iteration
+### 1.2 Resource lifecycle and graceful shutdown
 
-- `itertools` — `chain`, `islice`, `groupby` (requires sorted input), `product`, `permutations`, `combinations`, `accumulate`, `takewhile`/`dropwhile`, `zip_longest`; `pairwise` (3.10+); **`batched`** (3.12+) — replaces hand-rolled chunking.
-- `functools` — `lru_cache`, `cache` (3.9+), **`cached_property`**, `partial`, `reduce`, **`singledispatch`/`singledispatchmethod`** (type-based polymorphism without isinstance chains), `total_ordering`, `wraps`.
-- `operator` — `itemgetter`/`attrgetter` (fast sort keys), `methodcaller`.
-- `contextlib` — **`ExitStack`** (dynamic/conditional context management), `suppress`, `closing`, `redirect_stdout`, `nullcontext`, `chdir` (3.11+), `asynccontextmanager`.
+- `contextlib.ExitStack` / `AsyncExitStack` — compose N resources acquired conditionally or in a loop; `pop_all()` transfers ownership. The pattern behind framework lifespans and connection pools.
+- `@contextmanager` / `@asynccontextmanager` — package setup/teardown as a reusable object instead of copy-pasted try/finally.
+- `weakref.finalize` — cleanup that reliably runs at GC or interpreter exit; strictly better than `__del__`. `WeakValueDictionary` for caches that don't block collection.
+- `signal` + `atexit` — services trap `SIGTERM` to flush and close cleanly; handlers should set an event, not do work (they run in the main thread between bytecodes).
 
-## 4. Numbers, math, and statistics
+### 1.3 Plugin and extension machinery
 
-- `math` — includes `isclose`, `prod`, `dist`, `lcm` (3.9+), `nextafter` (3.9+), `sumprod` (3.12+), `fma` (3.13+).
-- `statistics` — `fmean`, `geometric_mean`, `median_grouped`, `quantiles`, `mode`/`multimode`; `covariance`, `correlation`, **`linear_regression`** (3.10+); **`NormalDist`** (z-scores, CDF, overlap) — replaces scipy for basic descriptive/inferential work.
-- `decimal` — exact decimal arithmetic (money); `fractions` — rational numbers.
-- `random` — `choices` (weighted), `sample`, `shuffle`, `Random(seed)` instances; `randbytes` (3.9+). Not for security — use `secrets`.
+- `importlib.metadata` — entry points are the stdlib plugin-discovery mechanism (how pytest and ruff find plugins): third parties register in their `pyproject.toml`, you call `entry_points(group="myapp.plugins")` (group filter 3.10+). No plugin framework needed.
+- `importlib.resources` — `files(pkg) / "data.json"` reads data shipped inside a package and survives zip/wheel installs; `os.path.join(os.path.dirname(__file__), ...)` does not.
+- `functools.singledispatch` / `singledispatchmethod` — type-driven dispatch that external code can extend with `@register`; replaces growing `isinstance` chains with open extension.
+- `typing.Protocol` (+ `@runtime_checkable`) — structural interfaces without inheritance coupling; the right contract type for plugin APIs.
+- `__init_subclass__` — self-registering subclasses (handler registries) without metaclass machinery.
+- `@warnings.deprecated` (3.13+, PEP 702) — deprecate APIs with one decorator: runtime warning + type-checker signal together.
 
-## 5. Dates and times
+### 1.4 Introspection and runtime instrumentation
 
-- `datetime` — `fromisoformat` (expanded ISO 8601 support in 3.11+; still **not** every ISO 8601 form — check the target-version docs before claiming full compliance), `timestamp`/`fromtimestamp`, `timedelta`; `datetime.UTC` alias (3.11+).
-- `zoneinfo` (3.9+) — IANA time zones; prefer over `pytz` for new code. **Requires IANA data:** system tzdb and/or the `tzdata` package (especially on Windows). Existing `pytz`-heavy codebases may keep `pytz` for interop until migration is planned. DST-correct arithmetic with `fold`.
-- `calendar` — month/week math, `isleap`; enhanced CLI + color (3.14).
-- `time` — `monotonic` (elapsed-time measurement), `perf_counter` (benchmarking), `sleep`.
+- `inspect.signature` — the foundation for DI containers, CLI generators, and validating decorators; `inspect.iscoroutinefunction` before awaiting user callbacks.
+- `ast` — parse/analyze/transform Python source; `ast.literal_eval` for literal config (never `eval`).
+- `annotationlib` (3.14+) — the only correct way to read annotations under deferred evaluation (PEP 649); raw `__annotations__` access breaks on forward references.
+- `sys.monitoring` (3.12+) — low-overhead per-event instrumentation for coverage/profiling/tracing tools, without `sys.settrace`'s cost.
 
-## 6. Files, paths, and filesystems
+### 1.5 Binary data and zero-copy
 
-- `pathlib` — object paths: `glob`/`rglob`, `read_text`/`write_bytes`, `mkdir(parents=True, exist_ok=True)`; `walk()` (3.12+); `full_match()` (3.13+); `copy()`/`move()` (3.14+); `Path.from_uri` (3.13+).
-- `shutil` — `copytree`, `rmtree`, `which`, `disk_usage`, `make_archive`/`unpack_archive`, `get_terminal_size`.
-- `tempfile` — `TemporaryDirectory`, `NamedTemporaryFile` (mind Windows `delete=` semantics; `delete_on_close` 3.12+).
-- `glob`/`fnmatch` — pattern matching (prefer `pathlib` equivalents in new code); `filecmp` — file/dir comparison.
-- `fileinput` — line-by-line over multiple files with in-place edit support.
-- `os` — env vars, `scandir` (fast dir walks with cached stat), process info; `os.path` for low-level path ops.
-- `mmap` — memory-mapped file I/O for large-file random access.
-- `stat` — mode-bit interpretation.
+- `memoryview` — slice buffers without copying (a slice is a view, not a copy); the difference between O(n) and O(n²) when carving network frames. `.cast()` reinterprets layout.
+- `struct` — declarative binary pack/unpack for protocols and file formats; `Struct` objects precompile the format string.
+- `mmap` — random access into huge files without reading them; share pages between processes.
+- `array` — compact typed numeric storage where `numpy` would be a dependency for nothing.
+- `multiprocessing.shared_memory` — zero-copy data sharing across processes.
 
-## 7. Persistence and databases
+### 1.6 sqlite3 as an application backbone
 
-- `sqlite3` — full embedded SQL DB: transactions, `executemany`, row factories, `backup()`, user-defined functions (`create_function`, deterministic flag), FTS5 full-text search, JSON1 functions, `autocommit` attribute (3.12+). Frequently sufficient where a "real database" or `redis` feels like the default. **Portability:** features depend on how the linked SQLite was compiled (e.g. FTS5, JSON1, loadable extensions) — verify at runtime/`PRAGMA compile_options` before relying on them; see [SQLite compile options](https://www.sqlite.org/compile.html).
-- `dbm` — key-value stores; `dbm.sqlite3` backend (3.13+).
-- `shelve` — persistent dict of pickled objects.
-- `pickle` — Python object serialization (never unpickle untrusted data).
-- `configparser` — INI files.
+- Beyond CRUD: WAL mode (`PRAGMA journal_mode=WAL`) for concurrent readers, `backup()` for hot copies, `create_function(deterministic=True)` for UDFs, FTS5 full-text search, JSON functions, `executemany`, row factories. Frequently sufficient where "we need redis / a real DB" is assumed. **Caveat:** compiled features (FTS5, JSON1, loadable extensions) vary by build — check `PRAGMA compile_options` at runtime.
+- `dbm.sqlite3` (3.13+) / `shelve` — a persistent key-value store in two lines when even SQL is too much.
 
-## 8. Compression and archiving
+### 1.7 Injection-safe text assembly
 
-- `zlib`, `gzip`, `bz2`, `lzma` — stream and one-shot compression.
-- `compression.zstd` (3.14+) — Zstandard (PEP 784) — replaces the `zstandard` PyPI package. The `compression.*` namespace (3.14+) also aliases gzip/bz2/lzma/zlib.
-- `zipfile` — read/write ZIP; **`zipfile.Path`** for pathlib-style access inside archives; CLI (`python -m zipfile`).
-- `tarfile` — read/write tar; **extraction `filter=` (3.12+; required thinking for untrusted archives — use `filter="data"`)**.
+- `string.templatelib` (3.14+, PEP 750 t-strings) — `t"SELECT … {user_input}"` yields a `Template` whose _consumer_ controls escaping; the foundation for building safe SQL/HTML/shell APIs.
+- `string.Template` — for **user-supplied** templates: `$name`-only substitution. Never feed user templates to `.format()` — `"{0.__class__}"`-style field access traverses attributes and leaks internals.
 
-## 9. Cryptography and security
+### 1.8 Observability and production diagnostics
 
-- `hashlib` — SHA-2/SHA-3, BLAKE2, `scrypt`/`pbkdf2_hmac` (password hashing); **`file_digest`** (3.11+) for efficient file hashing.
-- `hmac` — message authentication; `compare_digest` for timing-safe comparison.
-- `secrets` — CSPRNG tokens: `token_hex`, `token_urlsafe`, `choice` — the correct module for tokens and security-sensitive random choices.
-- `ssl` — TLS contexts; `ssl.create_default_context()` is the safe starting point.
-- **No general encryption in stdlib:** no AES/RSA/JWT primitives. For encryption, digital signatures, or authenticated encryption, use a maintained third-party library such as `cryptography`. Never assemble crypto from `hashlib` + XOR or similar.
+- `logging` architecture — `QueueHandler`/`QueueListener` make logging non-blocking (essential under async); `dictConfig` for declarative setup; filters/`LoggerAdapter` inject request context (pair with `contextvars`).
+- `faulthandler` — `enable()` at service start prints tracebacks on segfault/deadlock; `dump_traceback_later()` doubles as a hang watchdog.
+- `tracemalloc` — snapshot diffs attribute memory growth to file:line; the answer to "where is the leak" without a profiler dependency.
+- `traceback.TracebackException` — captures exception data without holding frames, for rendering later or elsewhere (error reporters).
 
-## 10. Concurrency and processes
+---
 
-- `subprocess` — `run(..., capture_output=True, text=True, check=True)` covers most needs; prefer list argv over `shell=True`; pair with `shlex.split`/`shlex.quote` when shell is unavoidable.
-- `concurrent.futures` — `ThreadPoolExecutor` (I/O-bound), `ProcessPoolExecutor` (CPU-bound), `as_completed`, `wait`; `InterpreterPoolExecutor` (3.14+).
-- `concurrent.interpreters` (3.14+) — isolated subinterpreters (PEP 734), CSP-style concurrency.
-- `threading` — `Lock`/`RLock`/`Event`/`Condition`/`Barrier`, `Timer`, `local`.
-- `multiprocessing` — shared memory (`shared_memory` 3.8+), `Manager`, pools. Note: default start method is no longer fork on Linux in 3.14.
-- `queue` — thread-safe FIFO/LIFO/priority queues; `SimpleQueue`.
-- `asyncio` — **`TaskGroup`** (3.11+, structured concurrency), **`asyncio.timeout`** (3.11+), `Runner` (3.11+), `to_thread` (3.9+), streams, subprocesses; introspection CLI `python -m asyncio ps/pstree` (3.14+).
-- `sched` — simple event scheduler; `signal` — signal handlers, `SIGALRM` timeouts (Unix).
-- `selectors` — high-level I/O multiplexing over `select`.
-- `contextvars` — context-local state that is async-correct (unlike `threading.local`).
+## 2. Everyday patterns, written completely
 
-## 11. Networking and internet data
+Code that gets written constantly; each entry is the delta between "works on my machine" and correct. Format: habit → upgrade.
 
-- `urllib.request` — HTTP(S) requests: GET/POST, headers, timeouts, proxies — sufficient for simple scripted calls; `urllib.parse` — URL parsing/quoting/query building (`urlencode`, `parse_qs`).
-- `http.client` — lower-level HTTP; `http` — `HTTPStatus`/`HTTPMethod` enums.
-- `http.server` — dev/static file server (`python -m http.server`), request-handler framework. Not for production.
-- `socket` — TCP/UDP primitives; `create_connection`, `getaddrinfo`.
-- `socketserver` — threaded/forking server framework (`ThreadingTCPServer`).
-- `ipaddress` — IP/CIDR math: membership, subnetting, supernets — replaces hand-rolled CIDR logic.
-- `uuid` — v1–v5; **v6–v8 including `uuid7()` (3.14+, RFC 9562)** — replaces `uuid6`/`uuid7` PyPI packages on 3.14+.
-- `smtplib`, `imaplib`, `poplib` — mail protocols (pair with `email.message`).
-- `xmlrpc`, `ftplib` — legacy protocols, still present through 3.14.
+### 2.1 Files and paths
 
-## 12. CLI, terminal, and configuration
+- `open(p)` → `open(p, encoding="utf-8")` — the default encoding is platform-dependent (Windows ≠ UTF-8) until UTF-8 becomes the default (PEP 686, accepted for 3.15).
+- CSV file handles → `open(p, newline="")` — required by the `csv` docs; omitting it corrupts rows on Windows.
+- "Write then rename" → write a temp file **in the same directory**, then `os.replace(tmp, dst)` — atomic on the same filesystem; readers never observe partial writes.
+- `NamedTemporaryFile()` on Windows cannot be reopened while open — `delete_on_close=False` (3.12+) or use `TemporaryDirectory`.
+- Shelling out to `which` → `shutil.which("exe")`.
+- Manual recursive walks → `Path.walk()` (3.12+) or `os.scandir` (`DirEntry` caches stat results — much faster than `listdir` + `stat`).
 
-- `argparse` — subcommands, groups, custom types, `BooleanOptionalAction`; color output + "did you mean" suggestions (3.14+).
-- `shlex` — `split`, `quote`, `join` — safe shell-string handling.
-- `getpass` — prompt without echo; `platform` — OS/interpreter info.
-- `readline`/`rlcompleter` — interactive input editing (Unix); `curses` — TUI (Unix).
-- `logging` — `dictConfig`, rotating handlers, `QueueHandler`/`QueueListener` (non-blocking logging); `logging.config`.
-- `warnings` — deprecation plumbing; `atexit` — shutdown hooks.
-- `webbrowser` — open URLs in the user's browser.
+### 2.2 Text
 
-## 13. Testing, debugging, and profiling
+- `s.strip(".txt")` → `s.removesuffix(".txt")` (3.9+) — `strip` removes a **character set**, a classic silent bug.
+- Caseless comparison → `s.casefold()`, not `.lower()` (handles ß→ss and friends).
+- Comparing or deduping user text → `unicodedata.normalize("NFC", s)` first; visually identical strings can differ by code points.
 
-- `unittest` — test framework; **`unittest.mock`** (`patch`, `MagicMock`, `AsyncMock`, autospec), `IsolatedAsyncioTestCase`. Note: choosing `pytest` (or another runner) is a **dev-tooling** decision — follow the project toolchain; stdlib-first does not require replacing an established test stack with `unittest`.
-- `doctest` — executable examples in docstrings.
-- `pdb` — debugger; **remote attach to a running process** (3.14+).
-- `timeit` — micro-benchmarks; `cProfile`/`pstats` — profiling; `tracemalloc` — memory attribution; `faulthandler` — crash tracebacks.
-- `traceback` — formatting/inspection of exceptions; `TracebackException` for structured handling.
+### 2.3 Time and datetime
 
-## 14. Typing, introspection, and runtime
+- `datetime.utcnow()` (deprecated 3.12, returns **naive**) → `datetime.now(UTC)` (`UTC` alias 3.11+, else `timezone.utc`).
+- Durations via `time.time()` → `time.perf_counter()`; deadlines/timeouts → `time.monotonic()`. Wall clock jumps (NTP, DST) — use it only for timestamps.
+- Local-time arithmetic across DST → do arithmetic in UTC, render via `zoneinfo` (mind `fold` for ambiguous times).
 
-- `typing` — `Protocol`, `TypedDict`, `Literal`, `Self` (3.11+), `override` (3.12+), `TypeAliasType`; PEP 695 generics syntax (3.12+) reduces need for `TypeVar` boilerplate.
-- `annotationlib` (3.14+) — inspect deferred annotations (PEP 649/749); use `get_annotations()` instead of raw `__annotations__` access on 3.14+.
-- `inspect` — signatures, source, `iscoroutinefunction`, frame inspection.
-- `dataclasses`, `abc` — see above; `abc.ABC` + `@abstractmethod` for interfaces (or prefer `typing.Protocol` for structural typing).
-- `importlib.resources` — access data files inside packages (replaces `pkg_resources`); `importlib.metadata` — installed-package metadata/entry points (replaces `pkg_resources` here too).
-- `ast` — parse/transform Python source; `ast.literal_eval` for safe literal parsing (never `eval`).
-- `sys`, `sysconfig`, `gc`, `site` — interpreter internals and lifecycle.
+### 2.4 Subprocess
 
-## 15. FFI and C API
+- Canonical call: `subprocess.run(argv_list, check=True, capture_output=True, text=True, timeout=N)`. On failure `CalledProcessError.stderr` holds the actual error — log it, not just the exit code.
+- String command + `shell=True` → list argv. If a shell is truly unavoidable, build the string with `shlex.quote`/`shlex.join`.
 
-- `ctypes` — call shared libraries (C ABI) from pure Python without compiling anything — check before `cffi`.
-- CPython C API — for extension modules: `https://docs.python.org/3.X/c-api/index.html`. Key entry points: stable ABI / limited API (`Py_LIMITED_API`), `PyObject` protocols, GIL management (`Py_BEGIN_ALLOW_THREADS`). On 3.12+ note per-interpreter GIL isolation (PEP 684); on 3.13+/3.14 note free-threaded build implications for extensions.
+### 2.5 Logging
+
+- Module top: `logger = logging.getLogger(__name__)`; configure (`basicConfig`/`dictConfig`) **only** in the entry point — libraries never configure.
+- `logger.info(f"x={x}")` → `logger.info("x=%s", x)` — lazy formatting skips the work when the level is off.
+- Inside `except`: `logger.exception("context")` — captures the traceback automatically.
+
+### 2.6 Errors, exits, and CLI behavior
+
+- Re-raising as a new type → `raise AppError(...) from e` (keep the cause) or `from None` (deliberately suppress it).
+- `try/except/pass` → `contextlib.suppress(FileNotFoundError)` — scoped and self-documenting.
+- Around `TaskGroup` (3.11+) → `except*` — failures arrive as `ExceptionGroup`, a bare `except ValueError` won't match.
+- CLI entry: `sys.exit(main())` with `main() -> int`; `KeyboardInterrupt` → exit 130; catch `BrokenPipeError` so `mycli | head` doesn't stack-trace.
+- Boolean flags → `argparse.BooleanOptionalAction` (3.9+) gives `--flag/--no-flag` pairs for free; prompt for secrets with `getpass.getpass` (no echo).
+
+### 2.7 Iteration and collections
+
+- Parallel iteration where lengths must match → `zip(a, b, strict=True)` (3.10+) — silent truncation is a data-loss bug.
+- Hand-rolled chunking loop → `itertools.batched(it, n)` (3.12+); `zip(xs, xs[1:])` → `itertools.pairwise` (3.10+, works on lazy iterators too).
+- `itertools.groupby` requires sorted input — sort by the same key first or groups fragment.
+- `sorted(xs, key=lambda x: x[1])` → `key=operator.itemgetter(1)` / `attrgetter("name")` for plain field access.
+- `functools.lru_cache` on a **method** pins every `self` forever — use `functools.cached_property`, or cache a module-level function keyed by arguments.
+
+### 2.8 Data modeling defaults
+
+- `@dataclass` → choose `@dataclass(slots=True, frozen=True, kw_only=True)` (3.10+) deliberately: slots = smaller + faster attribute access, frozen = hashable value object, kw_only = readable call sites. Mutable defaults via `field(default_factory=list)`.
+- Non-destructive updates → `dataclasses.replace(obj, x=1)`; generic `copy.replace()` protocol (3.13+).
+- String constants that serialize to JSON/DB → `enum.StrEnum` (3.11+); bit flags → `enum.Flag`.
+- Exposing internal dicts read-only → `types.MappingProxyType(d)`.
+- Overriding a base method → mark it `@typing.override` (3.12+) so renames fail the type check instead of silently forking behavior.
+
+### 2.9 Randomness, hashing, and security hygiene
+
+- Tokens/keys/OTPs → `secrets.token_urlsafe()/token_hex()/choice()` — `random` is predictable by design. Reproducible runs → a seeded `random.Random(seed)` instance, not the global `random.seed`.
+- Comparing secrets → `hmac.compare_digest` (timing-safe), never `==`.
+- Hashing a file → `hashlib.file_digest(f, "sha256")` (3.11+). Non-security fingerprints → `md5(data, usedforsecurity=False)` (3.9+, FIPS-safe).
+- TLS → start from `ssl.create_default_context()` (verification on by default); never hand-assemble an `SSLContext`.
+- Untrusted tar archives → `extractall(filter="data")` (3.12+; the default only from 3.14). Untrusted XML → hardened third-party parser; stdlib `xml.*` is not XXE-safe. Untrusted pickles → never.
+- Parsing "Python-ish" config values → `ast.literal_eval`, never `eval`.
+
+### 2.10 Test doubles (runtime side)
+
+- Env-dependent code → `unittest.mock.patch.dict(os.environ, {...})`; interfaces → `patch(..., autospec=True)` so drifted signatures fail loudly; async collaborators → `AsyncMock`. (The test _runner_ is a dev-tooling choice — follow the project.)
+
+---
+
+## 3. Hidden power tools
+
+Single capabilities that replace a dependency or a page of hand-rolled code.
+
+### Algorithms and data
+
+- `graphlib.TopologicalSorter` (3.9+) — dependency ordering + cycle detection; `prepare()/get_ready()/done()` drives **parallel** scheduling of a dependency graph, `static_order()` for the simple case.
+- `heapq.merge(*sorted_iters, key=)` — k-way merge of sorted streams in constant memory; `nlargest(k, xs, key=)` beats a full sort for small k.
+- `bisect` (+ `key=` 3.10+) — O(log n) lookups in sorted data; threshold tables (grade cutoffs, tiers) without an if-ladder; `insort` for bounded leaderboards.
+- `collections.ChainMap` — layered lookup for CLI args > env > defaults without merging dicts (writes go to the first layer only).
+- `collections.deque(maxlen=n)` — O(1) ring buffer for "last n events".
+- `difflib` — `get_close_matches()` for "did you mean…" and fuzzy key matching; `unified_diff()` for readable expected-vs-actual in error messages; `SequenceMatcher.ratio()` for similarity scores.
+
+### Numbers and statistics
+
+- `statistics.NormalDist` — z-scores, CDF, confidence intervals, distribution overlap — no scipy for basic inference. Also `quantiles`, `correlation`, `linear_regression` (3.10+), `fmean(weights=)` (3.11+).
+- `math.isclose` — the correct float comparison (never `==`); `math.sumprod` (3.12+) for precise dot products.
+- `fractions.Fraction` — exact ratio arithmetic; `.limit_denominator()` turns 0.333… back into 1/3. `decimal` — money.
+
+### Files, archives, text
+
+- `zipfile.Path` — pathlib-style reads **inside** an archive, no extraction.
+- `fileinput` — stream many files as one; `inplace=True` gives sed-style in-place editing.
+- `textwrap` — `dedent` (clean triple-quoted strings), `shorten` (truncate on word boundaries), `fill`.
+- `reprlib.repr` — bounded repr of huge structures for log lines; `@recursive_repr` for self-referential objects.
+- Accent stripping — `unicodedata.normalize("NFKD", s)` then drop combining characters; no `unidecode` needed for the basic case.
+
+### Network, IDs, protocols
+
+- `ipaddress` — `addr in network`, subnet/supernet math, `is_private`/`is_global` — replaces hand-rolled CIDR string logic.
+- `uuid.uuid7()` (3.14+) — time-ordered, index-friendly IDs; replaces the `uuid6`/`uuid7` PyPI packages.
+- `email.message.EmailMessage` — modern MIME building (attachments included) without the legacy `email.mime.*` class dance; pairs with `smtplib`.
+- `http.server.ThreadingHTTPServer` + a small handler — a stub HTTP API for tests in ~15 lines, no framework (dev use only, never production).
+- `socketserver.ThreadingTCPServer` — a threaded TCP service from just a handler class.
+
+### Debugging and the `python -m` toolbox
+
+- `breakpoint()` — respects `PYTHONBREAKPOINT` (`=0` disables; or point it at another debugger). `pdb` attaches to a **running process**: `python -m pdb -p PID` (3.14+).
+- `ctypes` — call an existing C shared library without compiling anything — check before `cffi` or writing an extension (C API: `https://docs.python.org/3.X/c-api/index.html`).
+- One-liners: `python -m http.server` (static files), `-m json.tool` (pretty-print; color 3.14), `-m zipfile` / `-m tarfile` (create/extract), `-m timeit` (micro-bench), `-m calendar`, `-m uuid` (3.12+), `-m sqlite3` (3.12+ interactive shell), `-m asyncio ps PID` / `pstree` (3.14+ live task dump), `-m pydoc -b` (browsable local docs).
