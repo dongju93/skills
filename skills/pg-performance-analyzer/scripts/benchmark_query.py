@@ -22,6 +22,7 @@
     uv run scripts/benchmark_query.py --database mydb --user postgres \
         --compare-file comparison.json --iterations 15 --json-output
 """
+
 import argparse
 import json
 import re
@@ -60,7 +61,9 @@ class BenchmarkResult:
             "max_ms": round(max(times), 3),
             "p95_ms": round(p95, 3),
             "std_dev_ms": round(statistics.stdev(times), 3) if len(times) > 1 else 0.0,
-            "cv": round(statistics.stdev(times) / avg, 4) if len(times) > 1 and avg > 0 else 0.0,
+            "cv": round(statistics.stdev(times) / avg, 4)
+            if len(times) > 1 and avg > 0
+            else 0.0,
         }
 
 
@@ -81,8 +84,11 @@ class QueryBenchmark:
         try:
             import psycopg2
         except ImportError:
-            print("Error: psycopg2가 없습니다. `uv run scripts/benchmark_query.py ...`로 실행하면"
-                  " 인라인 메타데이터로 자동 설치됩니다.", file=sys.stderr)
+            print(
+                "Error: psycopg2가 없습니다. `uv run scripts/benchmark_query.py ...`로 실행하면"
+                " 인라인 메타데이터로 자동 설치됩니다.",
+                file=sys.stderr,
+            )
             return False
         try:
             self.conn = psycopg2.connect(**self.connection_params)
@@ -112,11 +118,13 @@ class QueryBenchmark:
 
     def apply_settings(self, settings: dict[str, Any]) -> None:
         from psycopg2 import sql as pgsql
+
         for name, value in settings.items():
             if not GUC_NAME_RE.match(name):
                 raise ValueError(f"잘못된 GUC 이름: {name!r}")
             stmt = pgsql.SQL("SET {} = {}").format(
-                pgsql.Identifier(name), pgsql.Literal(str(value)))
+                pgsql.Identifier(name), pgsql.Literal(str(value))
+            )
             print(f"  [setting] SET {name} = {value}")
             with self.conn.cursor() as cur:
                 cur.execute(stmt)
@@ -160,7 +168,8 @@ class QueryBenchmark:
         rollback_each: bool = False,
     ) -> BenchmarkResult:
         result = BenchmarkResult(
-            name=name, query=query, timing_mode=timing_mode, iterations=iterations)
+            name=name, query=query, timing_mode=timing_mode, iterations=iterations
+        )
 
         print(f"  {iterations} iterations (+{warmup} warmup, timing={timing_mode})")
 
@@ -210,9 +219,15 @@ class QueryBenchmark:
             print(f"\n=== [{i}/{len(variants)}] {name} ===")
 
             if not allow_writes and leading_keyword(sql_text) not in READ_ONLY_KEYWORDS:
-                results.append(BenchmarkResult(
-                    name=name, query=sql_text, timing_mode=timing_mode,
-                    iterations=0, error="쓰기 쿼리로 보임 - --allow-writes 필요"))
+                results.append(
+                    BenchmarkResult(
+                        name=name,
+                        query=sql_text,
+                        timing_mode=timing_mode,
+                        iterations=0,
+                        error="쓰기 쿼리로 보임 - --allow-writes 필요",
+                    )
+                )
                 print(f"  skipped: {results[-1].error}")
                 continue
 
@@ -223,12 +238,21 @@ class QueryBenchmark:
                     self.apply_settings(variant["settings"])
 
                 result = self.run_benchmark(
-                    sql_text, name=name, iterations=iterations, warmup=warmup,
-                    timing_mode=timing_mode, rollback_each=rollback_each)
+                    sql_text,
+                    name=name,
+                    iterations=iterations,
+                    warmup=warmup,
+                    timing_mode=timing_mode,
+                    rollback_each=rollback_each,
+                )
             except Exception as e:
                 result = BenchmarkResult(
-                    name=name, query=sql_text, timing_mode=timing_mode,
-                    iterations=0, error=str(e))
+                    name=name,
+                    query=sql_text,
+                    timing_mode=timing_mode,
+                    iterations=0,
+                    error=str(e),
+                )
                 print(f"  error: {e}")
             finally:
                 try:
@@ -242,6 +266,7 @@ class QueryBenchmark:
 
 
 # ---- 출력 ---------------------------------------------------------------
+
 
 def print_result(result: BenchmarkResult) -> None:
     print(f"\n=== Benchmark: {result.name} (timing={result.timing_mode}) ===")
@@ -265,32 +290,42 @@ def print_comparison(results: list[BenchmarkResult]) -> None:
     print("-" * 76)
     for r in sorted(valid, key=lambda r: r.stats["median_ms"]):
         rel = r.stats["median_ms"] / baseline if baseline > 0 else 0
-        print(f"{r.name[:36]:<36} {r.stats['median_ms']:>12.3f} "
-              f"{r.stats['p95_ms']:>10.3f} {rel:>9.2f}x")
+        print(
+            f"{r.name[:36]:<36} {r.stats['median_ms']:>12.3f} "
+            f"{r.stats['p95_ms']:>10.3f} {rel:>9.2f}x"
+        )
     for r in results:
         if r.error:
             print(f"{r.name[:36]:<36} {'(error: ' + r.error[:30] + ')':>34}")
 
 
 def to_json(results: list[BenchmarkResult], server_version: str) -> str:
-    return json.dumps({
-        "server_version": server_version,
-        "results": [{
-            "name": r.name,
-            "query": r.query,
-            "timing_mode": r.timing_mode,
-            "iterations": r.iterations,
-            "rows_returned": r.rows_returned,
-            "error": r.error,
-            "stats": r.stats,
-            "execution_times_ms": [round(t, 3) for t in r.execution_times_ms],
-        } for r in results],
-    }, indent=2, ensure_ascii=False)
+    return json.dumps(
+        {
+            "server_version": server_version,
+            "results": [
+                {
+                    "name": r.name,
+                    "query": r.query,
+                    "timing_mode": r.timing_mode,
+                    "iterations": r.iterations,
+                    "rows_returned": r.rows_returned,
+                    "error": r.error,
+                    "stats": r.stats,
+                    "execution_times_ms": [round(t, 3) for t in r.execution_times_ms],
+                }
+                for r in results
+            ],
+        },
+        indent=2,
+        ensure_ascii=False,
+    )
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="PostgreSQL 쿼리 벤치마크 (측정 방식 단일화, setup/settings 지원)")
+        description="PostgreSQL 쿼리 벤치마크 (측정 방식 단일화, setup/settings 지원)"
+    )
     parser.add_argument("--host", default="localhost")
     parser.add_argument("--port", type=int, default=5432)
     parser.add_argument("--database", required=True)
@@ -298,25 +333,40 @@ def main() -> None:
     parser.add_argument("--password", default="")
     parser.add_argument("--query", help="벤치마크할 단일 쿼리")
     parser.add_argument("--query-file", help="쿼리가 담긴 파일")
-    parser.add_argument("--compare-file",
-                        help="비교 변형 JSON 파일: [{name, sql, pre_setup, settings, post_cleanup}]")
+    parser.add_argument(
+        "--compare-file",
+        help="비교 변형 JSON 파일: [{name, sql, pre_setup, settings, post_cleanup}]",
+    )
     parser.add_argument("--iterations", type=int, default=10)
     parser.add_argument("--warmup", type=int, default=2)
-    parser.add_argument("--timing", choices=("client", "server"), default="client",
-                        help="client: 왕복 시간 / server: EXPLAIN ANALYZE 보고 시간 (혼합 없음)")
-    parser.add_argument("--allow-writes", action="store_true",
-                        help="DML로 보이는 쿼리의 벤치마크 허용")
-    parser.add_argument("--rollback-each", action="store_true",
-                        help="각 반복을 BEGIN/ROLLBACK으로 감싼다 (DML 반복 시 데이터 보존)")
-    parser.add_argument("--plan-output",
-                        help="워밍업 후 표본과 별도로 EXPLAIN JSON을 이 파일에 저장 "
-                             "(parse_explain.py 입력용)")
+    parser.add_argument(
+        "--timing",
+        choices=("client", "server"),
+        default="client",
+        help="client: 왕복 시간 / server: EXPLAIN ANALYZE 보고 시간 (혼합 없음)",
+    )
+    parser.add_argument(
+        "--allow-writes", action="store_true", help="DML로 보이는 쿼리의 벤치마크 허용"
+    )
+    parser.add_argument(
+        "--rollback-each",
+        action="store_true",
+        help="각 반복을 BEGIN/ROLLBACK으로 감싼다 (DML 반복 시 데이터 보존)",
+    )
+    parser.add_argument(
+        "--plan-output",
+        help="워밍업 후 표본과 별도로 EXPLAIN JSON을 이 파일에 저장 "
+        "(parse_explain.py 입력용)",
+    )
     parser.add_argument("--json-output", action="store_true")
     args = parser.parse_args()
 
     conn_params = {
-        "host": args.host, "port": args.port, "database": args.database,
-        "user": args.user, "password": args.password,
+        "host": args.host,
+        "port": args.port,
+        "database": args.database,
+        "user": args.user,
+        "password": args.password,
     }
 
     benchmark = QueryBenchmark(conn_params)
@@ -332,9 +382,15 @@ def main() -> None:
                 with open(args.query_file, encoding="utf-8") as f:
                     query = f.read()
 
-            if not args.allow_writes and leading_keyword(query) not in READ_ONLY_KEYWORDS:
-                print("이 쿼리는 데이터를 변경하는 것으로 보입니다. 반복 실행에 동의하면 "
-                      "--allow-writes를 지정하세요. (--rollback-each 병용 권장)", file=sys.stderr)
+            if (
+                not args.allow_writes
+                and leading_keyword(query) not in READ_ONLY_KEYWORDS
+            ):
+                print(
+                    "이 쿼리는 데이터를 변경하는 것으로 보입니다. 반복 실행에 동의하면 "
+                    "--allow-writes를 지정하세요. (--rollback-each 병용 권장)",
+                    file=sys.stderr,
+                )
                 sys.exit(1)
 
             if args.plan_output:
@@ -344,8 +400,12 @@ def main() -> None:
                 print(f"EXPLAIN plan saved: {args.plan_output} (표본에는 미포함)")
 
             result = benchmark.run_benchmark(
-                query, iterations=args.iterations, warmup=args.warmup,
-                timing_mode=args.timing, rollback_each=args.rollback_each)
+                query,
+                iterations=args.iterations,
+                warmup=args.warmup,
+                timing_mode=args.timing,
+                rollback_each=args.rollback_each,
+            )
 
             if args.json_output:
                 print(to_json([result], benchmark.server_version))
@@ -356,9 +416,13 @@ def main() -> None:
             with open(args.compare_file, encoding="utf-8") as f:
                 variants = json.load(f)
             results = benchmark.compare(
-                variants, iterations=args.iterations, warmup=args.warmup,
-                timing_mode=args.timing, allow_writes=args.allow_writes,
-                rollback_each=args.rollback_each)
+                variants,
+                iterations=args.iterations,
+                warmup=args.warmup,
+                timing_mode=args.timing,
+                allow_writes=args.allow_writes,
+                rollback_each=args.rollback_each,
+            )
             if args.json_output:
                 print(to_json(results, benchmark.server_version))
             else:

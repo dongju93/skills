@@ -4,14 +4,14 @@ PostgreSQL 18의 비동기 I/O 서브시스템 튜닝 가이드. **설정별 적
 
 ## 설정 컨텍스트 요약 (가장 중요)
 
-| 설정 | 컨텍스트 | 적용 방법 |
-| --- | --- | --- |
-| `io_method` | postmaster | **서버 재시작 필수.** `pg_reload_conf()` 무효 |
-| `io_max_combine_limit` | postmaster | **서버 재시작 필수** (공유 메모리 할당 크기 결정) |
-| `io_workers` | sighup | `postgresql.conf` 수정 후 reload (`pg_reload_conf()`) |
-| `io_combine_limit` | user | 세션 `SET` 가능. `io_max_combine_limit`이 상한 |
-| `effective_io_concurrency` | user | 세션/테이블스페이스 단위 `SET` 가능. PG18 기본값 16 |
-| `maintenance_io_concurrency` | user | 세션 `SET` 가능 |
+| 설정                         | 컨텍스트   | 적용 방법                                             |
+| ---------------------------- | ---------- | ----------------------------------------------------- |
+| `io_method`                  | postmaster | **서버 재시작 필수.** `pg_reload_conf()` 무효         |
+| `io_max_combine_limit`       | postmaster | **서버 재시작 필수** (공유 메모리 할당 크기 결정)     |
+| `io_workers`                 | sighup     | `postgresql.conf` 수정 후 reload (`pg_reload_conf()`) |
+| `io_combine_limit`           | user       | 세션 `SET` 가능. `io_max_combine_limit`이 상한        |
+| `effective_io_concurrency`   | user       | 세션/테이블스페이스 단위 `SET` 가능. PG18 기본값 16   |
+| `maintenance_io_concurrency` | user       | 세션 `SET` 가능                                       |
 
 ## AIO 개요
 
@@ -57,11 +57,11 @@ SHOW io_method;
 
 **시작값 제안 (벤치마크로 조정 전제):**
 
-| 스토리지 | 시작값 |
-| --- | --- |
-| 로컬 NVMe/SSD | 100-200 |
+| 스토리지                        | 시작값                          |
+| ------------------------------- | ------------------------------- |
+| 로컬 NVMe/SSD                   | 100-200                         |
 | 클라우드 블록 스토리지 (EBS 등) | 50-200 (프로비저닝 IOPS에 맞춤) |
-| HDD | 2-8 |
+| HDD                             | 2-8                             |
 
 전역으로 바꾸기 전에 세션에서 확인한다:
 

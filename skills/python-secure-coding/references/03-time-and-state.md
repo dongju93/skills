@@ -39,6 +39,7 @@
 시간에도 다른 사용자 또는 프로그램에 의해 파일이 사라져 원하는 기능을 실행할 수 없는 경우를 보여 준다.
 
 **❌ 안전하지 않은 코드 예시**
+
 ```python
 
 import os
@@ -67,6 +68,7 @@ def start():
 자원에 접근하는 것을 통제 하는 예제 코드를 보여 준다. lock을 acquire하면 해당 쓰레드만 공유 데이터에 접근 할 수 있고 lock을 release 해야만 다른 쓰레드에서 공유 데이터에 접근 할 수 있다.
 
 **✅ 안전한 코드 예시**
+
 ```python
 
 import os
@@ -95,10 +97,10 @@ def start():
 **라. 참고자료**
 
 - ① CWE-367: Time-of-check Time-of-use (TOCTOU) Race Condition, MITRE,
-https://cwe.mitre.org/data/definitions/367.html
+  https://cwe.mitre.org/data/definitions/367.html
 
 - ② Thread-based parallelism, Python Software Foundation,
-https://docs.python.org/3/library/threading.html
+  https://docs.python.org/3/library/threading.html
 
 ### 2. 종료되지 않는 반복문 또는 재귀 함수
 
@@ -125,6 +127,7 @@ https://docs.python.org/3/library/threading.html
 4)기본케이스(BaseCase)는재귀호출을하지않고반환하는방법을의미한다.
 
 **❌ 안전하지 않은 코드 예시**
+
 ```python
 def factorial(num):
  # 재귀함수 탈출조건을 설정하지 않아 동작 중 에러 발생
@@ -140,6 +143,7 @@ if __name__ == '__main__':
 특정 조건 또는 횟수에 따라 재귀 코드 실행을 중단해 프로그램이 무한 반복에 빠지지 않도록 한다.
 
 **✅ 안전한 코드 예시**
+
 ```python
 def factorial(num):
  # 재귀함수 사용 시에는 탈출 조건을 명시해야 한다.
@@ -159,6 +163,7 @@ if __name__ == '__main__':
 파이썬의 재귀 반복 제한은 기본이 1000으로 설정되어 있다. Anaconda의 경우는 기본 값이 2000이다. 이 값을 과도하게 변경하지 않아야 한다.
 
 **✅ 안전한 코드 예시**
+
 ```python
 import sys
 
@@ -168,11 +173,10 @@ sys.setrecursionlimit(1000)
 **라. 참고자료**
 
 - ① CWE-674: Uncontrolled Recursion, MITRE,
-https://cwe.mitre.org/data/definitions/674.html
+  https://cwe.mitre.org/data/definitions/674.html
 
 - ② CWE-835: Loop with Unreachable Exit Condition ('Infinite Loop'), MITRE,
-https://cwe.mitre.org/data/definitions/835.html
+  https://cwe.mitre.org/data/definitions/835.html
 
 - ③ sys.setrecursionlimit, Python Software Foundation,
-https://docs.python.org/3/library/sys.html#sys.setrecursionlimit
-
+  https://docs.python.org/3/library/sys.html#sys.setrecursionlimit

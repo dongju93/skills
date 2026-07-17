@@ -19,6 +19,7 @@
 다음의 예제는 도메인명을 통해 해당 요청을 신뢰할 수 있는지를 검사하는 예시로, 공격자는 DNS 캐쉬 등을 조작해서 쉽게 이러한 보안 설정을 우회할 수 있다.
 
 **❌ 안전하지 않은 코드 예시**
+
 ```python
 
 def is_trust(host_domain_name):
@@ -35,6 +36,7 @@ def is_trust(host_domain_name):
 도메인명을 이용한 비교를 하지 말고 IP 주소를 직접 비교하도록 수정해 코드를 안전하게 만들 수 있다.
 
 **✅ 안전한 코드 예시**
+
 ```python
 
 import socket
@@ -53,7 +55,7 @@ def is_trust(host_domain_name):
 **라. 참고자료**
 
 - ① CWE-350: Reliance on Reverse DNS Resolution for a Security-Critical Action, MITRE,
-https://cwe.mitre.org/data/definitions/350.html ➁ Socket, Python Software Foundation, https://docs.python.org/3/library/socket.htm
+  https://cwe.mitre.org/data/definitions/350.html ➁ Socket, Python Software Foundation, https://docs.python.org/3/library/socket.htm
 
 ### 2. 취약한 API 사용
 
@@ -176,7 +178,7 @@ https://cwe.mitre.org/data/definitions/350.html ➁ Socket, Python Software Foun
 **라. 참고자료**
 
 - ① NTIA - SBOM,
-https://www.ntia.gov/page/software-bill-materials
+  https://www.ntia.gov/page/software-bill-materials
 
 - ② CISA - SBOM,
-https://www.cisa.gov/sbom
+  https://www.cisa.gov/sbom

@@ -73,6 +73,7 @@ python scripts/parse_explain.py explain.json --top 10
 
 ```markdown
 ## 제안: orders.status 부분 인덱스
+
 - 근거: Seq Scan에서 450,000행이 필터로 제거됨 (반환 50,000행), status='active'가 전체의 10%
 - 변경: CREATE INDEX CONCURRENTLY idx_orders_active ON orders(id) WHERE status = 'active';
 - 위험도: 낮음 (CONCURRENTLY - 쓰기 차단 없음, 실패 시 INVALID 인덱스 정리 필요)
@@ -118,7 +119,7 @@ python scripts/parse_explain.py plan.json
       "CREATE INDEX IF NOT EXISTS idx_status_email ON users(status, email)"
     ],
     "post_cleanup": ["CREATE INDEX IF NOT EXISTS idx_email ON users(email)"],
-    "settings": {"work_mem": "64MB"}
+    "settings": { "work_mem": "64MB" }
   }
 ]
 ```
@@ -157,12 +158,12 @@ GROUP BY a.backend_type;
 
 ## 버전별 성능 기능 요약 (정확성 우선)
 
-| 버전 | 주요 성능 기능 | 활용 방법 |
-| --- | --- | --- |
-| 15 | 정렬 알고리즘 개선, `MERGE` | 자동 적용. 별도 설정 없음 |
-| 16 | SIMD 가속(ASCII/JSON), Hash 인덱스 빌드 개선 | 자동 적용 |
-| 17 | VACUUM 메모리 대폭 감소, B-tree IN-list 멀티값 검색, Streaming I/O, `io_combine_limit` | 자동 적용. IN-list는 인덱스만 있으면 됨 |
-| 18 | AIO(`io_method`), B-tree Skip Scan, Self-join 제거, OR→배열 변환, 병렬 GIN 빌드, `uuidv7()`, temporal constraint, virtual generated column, `EXPLAIN`의 `Index Searches` | 아래 상세 참조 |
+| 버전 | 주요 성능 기능                                                                                                                                                           | 활용 방법                               |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
+| 15   | 정렬 알고리즘 개선, `MERGE`                                                                                                                                              | 자동 적용. 별도 설정 없음               |
+| 16   | SIMD 가속(ASCII/JSON), Hash 인덱스 빌드 개선                                                                                                                             | 자동 적용                               |
+| 17   | VACUUM 메모리 대폭 감소, B-tree IN-list 멀티값 검색, Streaming I/O, `io_combine_limit`                                                                                   | 자동 적용. IN-list는 인덱스만 있으면 됨 |
+| 18   | AIO(`io_method`), B-tree Skip Scan, Self-join 제거, OR→배열 변환, 병렬 GIN 빌드, `uuidv7()`, temporal constraint, virtual generated column, `EXPLAIN`의 `Index Searches` | 아래 상세 참조                          |
 
 ### PG18 기능의 정확한 제어 방법
 

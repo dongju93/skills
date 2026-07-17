@@ -27,6 +27,7 @@ None을 반환하는 함수를 사용하면 None과 다른 값(예: 0이나 빈 
 파이썬에서는 포인터를 사용하지는 않지만 데이터에 대한 적절한 검사를 수행하지 않을 경우 Null pointer와 유사한 None 값 참조 오류를 범할 수 있다.
 
 **❌ 안전하지 않은 코드 예시**
+
 ```python
 import os
 from django.shortcuts import render
@@ -58,6 +59,7 @@ def parse_xml(request):
 참조하고자 하는 자원을 호출 시에는 반드시 개체가 None이 아닌지 검증해야 한다.
 
 **✅ 안전한 코드 예시**
+
 ```python
 import os
 from django.shortcuts import render
@@ -93,10 +95,10 @@ def parse_xml(request):
 **라. 참고자료**
 
 - ① CWE-476: NULL Pointer Dereference, MITRE,
-https://cwe.mitre.org/data/definitions/476.html
+  https://cwe.mitre.org/data/definitions/476.html
 
 - ② Null Dereference, OWASP,
-https://owasp.org/www-community/vulnerabilities/Null_Dereference
+  https://owasp.org/www-community/vulnerabilities/Null_Dereference
 
 ➂ Built-in Constants, Python Software Foundation, https://docs.python.org/3/library/constants.html?#None
 
@@ -119,6 +121,7 @@ https://owasp.org/www-community/vulnerabilities/Null_Dereference
 다음은 try 구문 내의 코드 실행 중 오류가 발생할 경우 close() 메소드가 실행되지 않아 사용한 자원이 반환되지 않는 경우를 보여 준다.
 
 **❌ 안전하지 않은 코드 예시**
+
 ```python
 def get_config():
  lines = None
@@ -141,6 +144,7 @@ def get_config():
 받은 모든 자원을 반환해야 한다.
 
 **✅ 안전한 코드 예시**
+
 ```python
 
 def get_config():
@@ -164,6 +168,7 @@ def get_config():
 반환하는 예시다. 이렇게 작성하면 with문 내의 코드에 예외가 발생하더라도 항상 파일 닫기가 보장된다.
 
 **✅ 안전한 코드 예시**
+
 ```python
 # with 절을 빠져나갈 때 f를 시스템에 반환
 with open('config.cfg') as f:
@@ -174,10 +179,10 @@ with open('config.cfg') as f:
 **라. 참고자료**
 
 - ① CWE-404: Improper Resource Shutdown or Release, MITRE,
-https://cwe.mitre.org/data/definitions/404.html
+  https://cwe.mitre.org/data/definitions/404.html
 
 - ② Unreleased Resource, OWASP,
-https://owasp.org/www-community/vulnerabilities/Unreleased_Resource
+  https://owasp.org/www-community/vulnerabilities/Unreleased_Resource
 
 ➂ The With statement, Python Software Foundation, https://docs.python.org/3/reference/compound_stmts.html#grammar-token-python-grammar-with_stmt
 
@@ -220,6 +225,7 @@ pickle을 사용해 역직렬화 하는 경우 hmac으로 데이터에 서명하
 의도하지 않은 임의 코드 실행으로 이어질 수 있다.
 
 **❌ 안전하지 않은 코드 예시**
+
 ```python
 
 import pickle
@@ -240,6 +246,7 @@ def load_user_object(request):
 이 밖에도 역직렬화된 데이터의 특정 부분만 필요로 하는 경우 JSON과 같은 텍스트 형태의 안전한 직렬화 형식을 사용하는 것이 좋다.
 
 **✅ 안전한 코드 예시**
+
 ```python
 import hmac
 import hashlib
@@ -272,11 +279,10 @@ def load_user_object(request):
 **라. 참고자료**
 
 - ① CWE-502: Deserialization of Untrusted Data, MITRE,
-https://cwe.mitre.org/data/definitions/502.html
+  https://cwe.mitre.org/data/definitions/502.html
 
 - ② Deserialization Cheat Sheet, OWASP,
-https://cheatsheetseries.owasp.org/cheatsheets/Deserialization_Cheat_Sheet.html
+  https://cheatsheetseries.owasp.org/cheatsheets/Deserialization_Cheat_Sheet.html
 
 - ③ Python object serialization, Python Software Foundation,
-https://docs.python.org/3/library/pickle.html
-
+  https://docs.python.org/3/library/pickle.html

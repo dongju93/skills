@@ -27,6 +27,7 @@
 노출될 수도 있다. Django는 DEBUG 모드를 False로 배포했을 경우 아래와 같이 사용자 에러 페이지를 설정 하지 않으면 Django 기본 에러 페이지가 출력된다.
 
 **❌ 안전하지 않은 코드 예시**
+
 ```python
 
 # config/urls.py
@@ -36,6 +37,7 @@
 제공되는 에러 페이지 핸들러를 이용해 별도의 에러 페이지를 생성하여 사용자에게 표현하고 서버의 정보노출을 최소화해야 한다.
 
 **✅ 안전한 코드 예시**
+
 ```python
 # config/urls.py
 from django.conf.urls import handler400, handler403, handler404, handler500
@@ -52,6 +54,7 @@ handler500 = "blog.views.error500"
 아래는 traceback을 사용하여 에러 스택을 표준 출력으로 표시해 정보가 노출되는 예제를 보여 준다.
 
 **❌ 안전하지 않은 코드 예시**
+
 ```python
 
 import traceback
@@ -76,6 +79,7 @@ def fetch_url(url, useragent, referer=None, retries=1, dimension=False):
 오류 처리 시 아래와 같이 에러 이름이나 에러 추적 정보가 노출되지 않도록 한다.
 
 **✅ 안전한 코드 예시**
+
 ```python
 import logging
 
@@ -96,13 +100,13 @@ def fetch_url(url, useragent, referer=None, retries=1, dimension=False):
 **라. 참고자료**
 
 - ① CWE-209: Generation of Error Message Containing Sensitive Information, MITRE
-https://cwe.mitre.org/data/definitions/209.html
+  https://cwe.mitre.org/data/definitions/209.html
 
 - ② Improper Error Handling, OWASP,
-https://owasp.org/www-community/Improper_Error_Handling
+  https://owasp.org/www-community/Improper_Error_Handling
 
 - ③ Errors and Exceptions, Python Software Foundation,
-https://docs.python.org/3/tutorial/errors.html ➃ Django Error views, Django Software Foundation, https://docs.djangoproject.com/en/3.2/ref/views/#error-views
+  https://docs.python.org/3/tutorial/errors.html ➃ Django Error views, Django Software Foundation, https://docs.djangoproject.com/en/3.2/ref/views/#error-views
 
 ➄ Flask Error Handlers, Flask https://flask.palletsprojects.com/en/2.0.x/errorhandling/#error-handlers
 
@@ -127,6 +131,7 @@ https://docs.python.org/3/tutorial/errors.html ➃ Django Error views, Django So
 으로 프로그램이 동작할 수 있다.
 
 **❌ 안전하지 않은 코드 예시**
+
 ```python
 import base64
 from Crypto.Cipher import AES
@@ -160,6 +165,7 @@ def encryption(key_id, plain_text):
 예외상황 발생 시에 프로그램이 개발자의 의도와 다르게 동작하지 않도록 반드시 예외 처리 구문을 추가해야 한다.
 
 **✅ 안전한 코드 예시**
+
 ```python
 import base64
 from Crypto.Cipher import AES
@@ -193,10 +199,10 @@ static_keys=[
 **라. 참고자료**
 
 - ① CWE-390: Detection of Error Condition Without Action, MITRE,
-https://cwe.mitre.org/data/definitions/390.html
+  https://cwe.mitre.org/data/definitions/390.html
 
 - ② Errors and Exceptions, Python Software Foundation,
-https://docs.python.org/3/tutorial/errors.html
+  https://docs.python.org/3/tutorial/errors.html
 
 ➂ Built-in Exceptions, Python Software Foundation, https://docs.python.org/3/library/exceptions.html
 
@@ -217,6 +223,7 @@ https://docs.python.org/3/tutorial/errors.html
 다음 예제는 다양한 예외가 발생할 수 있음에도 불구하고 광범위한 예외 처리로 예외상황에 따른 적절한 조치가 부적절한 사례를 보여 준다.
 
 **❌ 안전하지 않은 코드 예시**
+
 ```python
 import sys
 
@@ -235,6 +242,7 @@ def get_content():
 다음은 발생 가능한 예외를 세분화한 후 예외상황에 따라 적합한 처리한 예시를 보여 준다.
 
 **✅ 안전한 코드 예시**
+
 ```python
 def get_content():
  try:
@@ -256,10 +264,9 @@ def get_content():
 **라. 참고자료**
 
 - ① CWE-754: Improper Check for Unusual or Exceptional Conditions, MITRE,
-https://cwe.mitre.org/data/definitions/754.html
+  https://cwe.mitre.org/data/definitions/754.html
 
 - ② Errors and Exceptions, Python Software Foundation,
-https://docs.python.org/3/tutorial/errors.html
+  https://docs.python.org/3/tutorial/errors.html
 
 ➂ Built-in Exceptions, Python Software Foundation, https://docs.python.org/3/library/exceptions.html
-
