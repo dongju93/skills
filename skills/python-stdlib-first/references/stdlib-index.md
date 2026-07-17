@@ -1,4 +1,4 @@
-# Standard Library Index (Python 3.9–3.14)
+# Standard Library Index (Python 3.10–3.14)
 
 **Curated by value-add, not by domain.** A competent developer — or model — already reaches for `json`, `re`, `pathlib`, `collections`, and `argparse` unprompted, so those earn no entries here. Every entry below is a _delta_: something that changes the output compared to the habitual version.
 
@@ -10,7 +10,7 @@ Pick the section that matches the task:
 | Writing or reviewing everyday code (files, subprocess, logging, time)   | §2                                      |
 | "Is there a built-in for X?" / replacing a dependency                   | §3 + the substitution table in SKILL.md |
 
-One-line summaries only — fetch `https://docs.python.org/3.X/library/{module}.html` for exact APIs. Version tags like `(3.11+)` mean "added in that version"; untagged items exist across 3.9–3.14. If nothing here matches: the official module index `https://docs.python.org/3.X/py-modindex.html`, or locally `python -c "import sys; print(sorted(sys.stdlib_module_names))"` (3.10+).
+One-line summaries only — fetch `https://docs.python.org/3.X/library/{module}.html` for exact APIs. Version tags like `(3.11+)` mean "added in that version"; untagged items exist across 3.10–3.14 (3.10 is the supported floor, so features present in it carry no tag). If nothing here matches: the official module index `https://docs.python.org/3.X/py-modindex.html`, or locally `python -c "import sys; print(sorted(sys.stdlib_module_names))"`.
 
 ---
 
@@ -23,7 +23,7 @@ Read when architecting. Load-bearing building blocks that replace a framework or
 - `asyncio.TaskGroup` (3.11+) — owned task lifetimes: the first non-cancellation failure cancels siblings and non-cancellation failures surface as an `ExceptionGroup` (handle with `except*`). Prefer it for related tasks with shared lifetime and fail-together semantics; keep `gather` when ordered aggregate results or independent-failure semantics are intentional. For detached `create_task` work, retain a strong reference — the event loop keeps only weak references.
 - `asyncio.timeout` (3.11+) — cancellation-correct deadlines around a block of awaits; `wait_for` remains appropriate when the timeout belongs to one awaitable.
 - `contextvars` — request-scoped state that survives `await` (correlation IDs, auth context). Coroutines on one event-loop thread share `threading.local`; use `contextvars` when state must follow each task independently.
-- `asyncio.to_thread` (3.9+) — the one-line bridge for blocking calls inside async code; a blocking call in a coroutine stalls the whole event loop.
+- `asyncio.to_thread` — the one-line bridge for blocking calls inside async code; a blocking call in a coroutine stalls the whole event loop.
 - `queue.Queue` / `asyncio.Queue` — producer/consumer backbone: `task_done()`/`join()` for completion, `Queue.shutdown()` (3.13+) or sentinels for teardown.
 - `concurrent.futures` — one `Executor` API across threads (I/O-bound), processes (CPU-bound), and subinterpreters (`InterpreterPoolExecutor`, 3.14+); `as_completed` streams results as they finish.
 - `concurrent.interpreters` (3.14+) — isolated interpreters for true multicore parallelism in one process. Mutable state is not shared; design data transfer explicitly and verify third-party extension compatibility.
@@ -38,7 +38,7 @@ Read when architecting. Load-bearing building blocks that replace a framework or
 
 ### 1.3 Plugin and extension machinery
 
-- `importlib.metadata` — entry points are the stdlib plugin-discovery mechanism used by pytest and many plugin hosts: third parties register in their `pyproject.toml`, you call `entry_points(group="myapp.plugins")` (group filter 3.10+). No plugin framework needed.
+- `importlib.metadata` — entry points are the stdlib plugin-discovery mechanism used by pytest and many plugin hosts: third parties register in their `pyproject.toml`, you call `entry_points(group="myapp.plugins")`. No plugin framework needed.
 - `importlib.resources` — `files(pkg) / "data.json"` reads data shipped inside a package and survives zip/wheel installs; `os.path.join(os.path.dirname(__file__), ...)` does not.
 - `functools.singledispatch` / `singledispatchmethod` — type-driven dispatch that external code can extend with `@register`; replaces growing `isinstance` chains with open extension.
 - `typing.Protocol` (+ `@runtime_checkable`) — structural interfaces without inheritance coupling; the right contract type for plugin APIs.
@@ -94,7 +94,7 @@ Code that gets written constantly; each entry is the delta between "works on my 
 
 ### 2.2 Text
 
-- `s.strip(".txt")` → `s.removesuffix(".txt")` (3.9+) — `strip` removes a **character set**, a classic silent bug.
+- `s.strip(".txt")` → `s.removesuffix(".txt")` — `strip` removes a **character set**, a classic silent bug.
 - Caseless comparison → `s.casefold()`, not `.lower()` (handles ß→ss and friends).
 - Comparing or deduping user text → `unicodedata.normalize("NFC", s)` first; visually identical strings can differ by code points.
 
@@ -121,12 +121,12 @@ Code that gets written constantly; each entry is the delta between "works on my 
 - `try/except/pass` → `contextlib.suppress(FileNotFoundError)` — scoped and self-documenting.
 - Around `TaskGroup` (3.11+) → `except*` — failures arrive as `ExceptionGroup`, a bare `except ValueError` won't match.
 - CLI entry: `sys.exit(main())` with `main() -> int`; if handling `KeyboardInterrupt`, exit 130; handle `BrokenPipeError` deliberately so `mycli | head` does not emit a traceback.
-- Boolean flags → `argparse.BooleanOptionalAction` (3.9+) gives `--flag/--no-flag` pairs for free; prompt for secrets with `getpass.getpass` (no echo).
+- Boolean flags → `argparse.BooleanOptionalAction` gives `--flag/--no-flag` pairs for free; prompt for secrets with `getpass.getpass` (no echo).
 
 ### 2.7 Iteration and collections
 
-- Parallel iteration where lengths must match → `zip(a, b, strict=True)` (3.10+) — silent truncation is a data-loss bug.
-- Hand-rolled chunking loop → `itertools.batched(it, n)` (3.12+); `zip(xs, xs[1:])` → `itertools.pairwise` (3.10+, works on lazy iterators too).
+- Parallel iteration where lengths must match → `zip(a, b, strict=True)` — silent truncation is a data-loss bug.
+- Hand-rolled chunking loop → `itertools.batched(it, n)` (3.12+); `zip(xs, xs[1:])` → `itertools.pairwise` (works on lazy iterators too).
 - `itertools.groupby` groups adjacent equal keys; sort by the same key first only when one consolidated group per key is required.
 - `sorted(xs, key=lambda x: x[1])` → `key=operator.itemgetter(1)` / `attrgetter("name")` for plain field access.
 - `functools.lru_cache` on a **method** includes `self` in the cache key and keeps cached instances alive until eviction or `cache_clear()`. Use `cached_property` for an argument-free per-instance computation, or cache a module-level function keyed by immutable data.
@@ -143,7 +143,7 @@ Code that gets written constantly; each entry is the delta between "works on my 
 
 - Tokens/keys/OTPs → `secrets.token_urlsafe()/token_hex()/choice()` — `random` is predictable by design. Reproducible runs → a seeded `random.Random(seed)` instance, not the global `random.seed`.
 - Comparing secrets → `hmac.compare_digest` (timing-safe), never `==`.
-- Hashing a file → `hashlib.file_digest(f, "sha256")` (3.11+). A non-security fingerprint may use `md5(data, usedforsecurity=False)` (3.9+); the flag states intent and can permit blocked algorithms, but availability still depends on the Python build and security policy.
+- Hashing a file → `hashlib.file_digest(f, "sha256")` (3.11+). A non-security fingerprint may use `md5(data, usedforsecurity=False)`; the flag states intent and can permit blocked algorithms, but availability still depends on the Python build and security policy.
 - TLS → start from `ssl.create_default_context()` (verification on by default), then customize only the settings the protocol requires. Do not disable certificate or hostname verification merely to make a failing connection succeed.
 - Untrusted tar archives → `extractall(filter="data")` (3.12+; the default only from 3.14). Treat stdlib `xml.*` as non-hardened for hostile input and use a hardened third-party parser. Never unpickle untrusted data.
 - Parsing trusted, bounded "Python-ish" literal values → `ast.literal_eval`, never `eval`. It avoids code execution but is not resource-safe for arbitrary untrusted input; prefer a typed format parser and input limits at trust boundaries.
@@ -160,16 +160,16 @@ Single capabilities that replace a dependency or a page of hand-rolled code.
 
 ### Algorithms and data
 
-- `graphlib.TopologicalSorter` (3.9+) — dependency ordering + cycle detection; `prepare()/get_ready()/done()` drives **parallel** scheduling of a dependency graph, `static_order()` for the simple case.
+- `graphlib.TopologicalSorter` — dependency ordering + cycle detection; `prepare()/get_ready()/done()` drives **parallel** scheduling of a dependency graph, `static_order()` for the simple case.
 - `heapq.merge(*sorted_iters, key=)` — k-way merge of sorted streams in constant memory; `nlargest(k, xs, key=)` beats a full sort for small k.
-- `bisect` (+ `key=` 3.10+) — O(log n) lookups in sorted data; threshold tables (grade cutoffs, tiers) without an if-ladder; `insort` for bounded leaderboards.
+- `bisect` (+ `key=`) — O(log n) lookups in sorted data; threshold tables (grade cutoffs, tiers) without an if-ladder; `insort` for bounded leaderboards.
 - `collections.ChainMap` — layered lookup for CLI args > env > defaults without merging dicts (writes go to the first layer only).
 - `collections.deque(maxlen=n)` — O(1) ring buffer for "last n events".
 - `difflib` — `get_close_matches()` for "did you mean…" and fuzzy key matching; `unified_diff()` for readable expected-vs-actual in error messages; `SequenceMatcher.ratio()` for similarity scores.
 
 ### Numbers and statistics
 
-- `statistics.NormalDist` — z-scores, CDF, confidence intervals, distribution overlap — no scipy for basic inference. Also `quantiles`, `correlation`, `linear_regression` (3.10+), `fmean(weights=)` (3.11+).
+- `statistics.NormalDist` — z-scores, CDF, confidence intervals, distribution overlap — no scipy for basic inference. Also `quantiles`, `correlation`, `linear_regression`, `fmean(weights=)` (3.11+).
 - `math.isclose` — compare values expected to differ by floating-point error, with tolerances chosen for the domain; exact `==` remains correct when exact equality is the requirement. `math.sumprod` (3.12+) provides higher-accuracy dot products.
 - `fractions.Fraction` — exact ratio arithmetic; `.limit_denominator()` turns 0.333… back into 1/3. `decimal` — money.
 

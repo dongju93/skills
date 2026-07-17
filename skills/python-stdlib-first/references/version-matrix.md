@@ -1,4 +1,4 @@
-# Version Matrix: Python 3.9 → 3.14
+# Version Matrix: Python 3.10 → 3.14
 
 Per-version stdlib additions, removals, and codegen-relevant changes. Full details: `https://docs.python.org/3/whatsnew/3.X.html`.
 
@@ -8,20 +8,15 @@ Per-version stdlib additions, removals, and codegen-relevant changes. Full detai
 
 | Feature                                                                                                                                                                                                                                                         | Minimum version |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
-| `zoneinfo`, `graphlib`, `functools.cache`, `str.removeprefix/removesuffix`, dict `\|` merge, `asyncio.to_thread`                                                                                                                                                | 3.9             |
 | `match` statement, `itertools.pairwise`, `bisect(..., key=)`, `dataclasses(slots=, kw_only=)`, `zip(strict=True)`, `int \| None` union syntax, `statistics.linear_regression`                                                                                   | 3.10            |
 | `tomllib`, `asyncio.TaskGroup`, `asyncio.timeout`, `ExceptionGroup`/`except*`, `typing.Self`, `StrEnum`, `datetime.UTC`, expanded `fromisoformat` (not every ISO 8601 form), `hashlib.file_digest`, `contextlib.chdir`                                          | 3.11            |
 | `itertools.batched`, `pathlib.Path.walk`, PEP 695 generics (`class Foo[T]`, `type X = ...`), f-string nesting freedom (PEP 701), `typing.override`, tarfile `filter=`, `sqlite3.Connection.autocommit`                                                          | 3.12            |
 | `copy.replace`, `dbm.sqlite3`, `PythonFinalizationError`, `base64.z85encode`, experimental free-threading/JIT                                                                                                                                                   | 3.13            |
 | `compression.zstd`, `annotationlib`, `concurrent.interpreters`, `string.templatelib` (t-strings), `uuid.uuid7` (v6–v8), `pathlib.Path.copy/move`, `InterpreterPoolExecutor`, deferred annotations by default (PEP 649/749), free-threading officially supported | 3.14            |
 
-## 3.9 (Oct 2020 — EOL Oct 2025)
+## 3.10 (Oct 2021) — supported floor
 
-- **Added modules:** `zoneinfo` (PEP 615), `graphlib`.
-- Notable: dict `|`/`|=`, `str.removeprefix`/`removesuffix`, generics in builtins (`list[int]`, PEP 585), `functools.cache`, `math.lcm`/`nextafter`/`ulp`, `random.randbytes`, `asyncio.to_thread`.
-- Removed: none relevant.
-
-## 3.10 (Oct 2021)
+Baseline for this skill; features at or below it are always available. Carried in from 3.9 and earlier (no version guard needed): `zoneinfo` (PEP 615), `graphlib`, `functools.cache`, `str.removeprefix`/`removesuffix`, generics in builtins (`list[int]`, PEP 585), `math.lcm`, `random.randbytes`, `asyncio.to_thread`.
 
 - **Added modules:** none. `sys.stdlib_module_names` added (programmatic stdlib listing).
 - Notable: structural pattern matching (`match`/`case`), `X | Y` union syntax (PEP 604), parenthesized context managers, `itertools.pairwise`, `bisect`/`insort` gain `key=`, `statistics.covariance`/`correlation`/`linear_regression`, `dataclasses` gains `slots=` and `kw_only=`, `zip(strict=)`, better error messages.
@@ -76,4 +71,4 @@ uv run --python 3.12 python -m pydoc zoneinfo
 uv run --python 3.12 python -c "import sys; print('tomllib' in sys.stdlib_module_names)"
 ```
 
-`sys.stdlib_module_names` (3.10+) is the definitive programmatic list for that interpreter.
+`sys.stdlib_module_names` is the definitive programmatic list for that interpreter.

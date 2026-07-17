@@ -1,6 +1,6 @@
 ---
 name: python-stdlib-first
-description: Assess Python standard library applicability BEFORE reaching for third-party packages when writing Python code. Use this skill whenever generating, reviewing, or refactoring Python code of any kind — scripts, APIs, CLIs, data processing, automation, testing, concurrency — even if the user never mentions "standard library" or "dependencies". Also use when selecting dependencies, reviewing requirements.txt/pyproject.toml, or when the user asks "is there a built-in way to do X?". Covers Python 3.9–3.14 with a version-aware module index and official documentation lookup patterns.
+description: Assess Python standard library applicability BEFORE reaching for third-party packages when writing Python code. Use this skill whenever generating, reviewing, or refactoring Python code of any kind — scripts, APIs, CLIs, data processing, automation, testing, concurrency — even if the user never mentions "standard library" or "dependencies". Also use when selecting dependencies, reviewing requirements.txt/pyproject.toml, or when the user asks "is there a built-in way to do X?". Covers Python 3.10–3.14 with a version-aware module index and official documentation lookup patterns.
 ---
 
 # Python Stdlib First
@@ -21,13 +21,13 @@ Every third-party dependency adds installation friction, supply-chain surface, v
 
 2. **Identify the capabilities the task needs.** Break the task into capability units: "parse TOML", "topological sort", "sliding-window rate limit", "fuzzy string match", "TZ-aware datetimes", etc.
 
-3. **Map capabilities to stdlib candidates.** Consult `references/stdlib-index.md` — organized by **value-add**, not domain: §1 foundations for advanced features (read when architecting), §2 quality upgrades to everyday patterns (read when writing or reviewing routine code), §3 lesser-known high-power tools (read when asking "is there a built-in?"). Read the section matching the task; it is deliberately not an exhaustive catalog. If no match appears there, fall back to the official module index (`https://docs.python.org/3.X/py-modindex.html`) or a local check of `sys.stdlib_module_names` (3.10+). Do not rely on vague recall.
+3. **Map capabilities to stdlib candidates.** Consult `references/stdlib-index.md` — organized by **value-add**, not domain: §1 foundations for advanced features (read when architecting), §2 quality upgrades to everyday patterns (read when writing or reviewing routine code), §3 lesser-known high-power tools (read when asking "is there a built-in?"). Read the section matching the task; it is deliberately not an exhaustive catalog. If no match appears there, fall back to the official module index (`https://docs.python.org/3.X/py-modindex.html`) or a local check of `sys.stdlib_module_names`. Do not rely on vague recall.
 
-4. **Verify version availability.** Consult `references/version-matrix.md` for what was added/removed in each of 3.9–3.14. A module existing "in the stdlib" is meaningless without knowing _since when_ (and, for removed modules, _until when_).
+4. **Verify version availability.** Consult `references/version-matrix.md` for what was added/removed in each of 3.10–3.14. A module existing "in the stdlib" is meaningless without knowing _since when_ (and, for removed modules, _until when_).
 
 5. **Confirm detail when needed (docs or local interpreter).** The index gives one-line summaries only. For exact APIs, parameters, and examples:
    - **Preferred when network is available:** fetch official docs using the URL patterns below. Never guess an API signature when the doc is one fetch away.
-   - **Offline / fetch-restricted fallback:** interrogate a local interpreter pinned to the target version, e.g. `uv run --python 3.12 python -c "import tomllib"`, `python -m pydoc module.func` for signatures, and `python -c "import sys; print(sorted(sys.stdlib_module_names))"` (3.10+) for a definitive module list.
+   - **Offline / fetch-restricted fallback:** interrogate a local interpreter pinned to the target version, e.g. `uv run --python 3.12 python -c "import tomllib"`, `python -m pydoc module.func` for signatures, and `python -c "import sys; print(sorted(sys.stdlib_module_names))"` for a definitive module list.
 
 6. **Decide and record.**
    - Stdlib sufficient → use it.
@@ -57,12 +57,12 @@ Never silently swap a third-party package the user explicitly asked for. If the 
 | Habitual reach                  | Stdlib candidate                              | Sufficient when                                                                                                                          |
 | ------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `requests`                      | `urllib.request`                              | A few simple GET/POST calls, no sessions/retries/streaming ergonomics; and the project is not already standardized on `requests`         |
-| `pytz`                          | `zoneinfo` (3.9+)                             | IANA data is available (system tzdb or `tzdata` package — especially on Windows); no hard `pytz` interop constraint                      |
+| `pytz`                          | `zoneinfo`                                    | IANA data is available (system tzdb or `tzdata` package — especially on Windows); no hard `pytz` interop constraint                      |
 | `python-dateutil`               | `datetime` + `zoneinfo`                       | No fuzzy parsing or `rrule` needed; common ISO forms parse via `datetime.fromisoformat` (expanded in 3.11+; not every ISO 8601 variant)  |
 | `toml` / `tomli`                | `tomllib` (3.11+)                             | Read-only TOML (stdlib cannot write TOML)                                                                                                |
 | `attrs` / `pydantic`            | `dataclasses`                                 | Structure + defaults + comparison; no runtime validation/coercion needed                                                                 |
 | `click` / `typer`               | `argparse`                                    | Standard subcommand/flag parsing (3.14 adds color + suggestions)                                                                         |
-| `networkx`                      | `graphlib` (3.9+)                             | Topological sort / cycle detection only                                                                                                  |
+| `networkx`                      | `graphlib`                                    | Topological sort / cycle detection only                                                                                                  |
 | `zstandard`                     | `compression.zstd` (3.14+)                    | Target is 3.14+                                                                                                                          |
 | `uuid6`/`uuid7` packages        | `uuid` (v6–v8 in 3.14+)                       | Target is 3.14+                                                                                                                          |
 | `orjson` / `ujson`              | `json`                                        | Serialization is not a measured hot path                                                                                                 |
@@ -75,7 +75,7 @@ Never silently swap a third-party package the user explicitly asked for. If the 
 
 ## Official documentation lookup
 
-Version-pinned URL patterns (replace `3.X` with the target minor version, 3.9–3.14):
+Version-pinned URL patterns (replace `3.X` with the target minor version, 3.10–3.14):
 
 - Module page: `https://docs.python.org/3.X/library/{module}.html` (e.g., `https://docs.python.org/3.14/library/graphlib.html`)
 - Library index: `https://docs.python.org/3.X/library/index.html`
@@ -96,7 +96,7 @@ uv run --python 3.12 python -c "import tomllib"
 # Signature / docstring
 uv run --python 3.12 python -m pydoc datetime.datetime.fromisoformat
 
-# Full stdlib module set (3.10+)
+# Full stdlib module set
 uv run --python 3.12 python -c "import sys; print('\n'.join(sorted(sys.stdlib_module_names)))"
 ```
 
@@ -113,5 +113,5 @@ This skill triggers on many Python tasks. Keep output quiet unless the choice ma
 
 ## References
 
-- `references/stdlib-index.md` — value-organized stdlib guide (3.9–3.14): §1 foundations for architecting advanced features, §2 expert-complete versions of everyday patterns (also serves code review), §3 lesser-known high-power tools. Read the section matching the task; not exhaustive.
-- `references/version-matrix.md` — per-version additions, removals, and notable API changes for 3.9–3.14. Read when the target version differs from the latest, or before using any module/API added after 3.9.
+- `references/stdlib-index.md` — value-organized stdlib guide (3.10–3.14): §1 foundations for architecting advanced features, §2 expert-complete versions of everyday patterns (also serves code review), §3 lesser-known high-power tools. Read the section matching the task; not exhaustive.
+- `references/version-matrix.md` — per-version additions, removals, and notable API changes for 3.10–3.14. Read when the target version differs from the latest, or before using any module/API added after 3.10.
