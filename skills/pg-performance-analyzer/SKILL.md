@@ -268,4 +268,4 @@ uv run scripts/benchmark_query.py --database <db> --user <user> \
 
 ## 스킬 범위
 
-이 스킬은 **성능 문제의 발견과 검증**에 집중한다. 스키마 설계, 안전한 마이그레이션 절차(잠금 수준, `NOT VALID`, 배치 백필), TimescaleDB 하이퍼테이블은 [timescale/pg-aiguide](https://github.com/timescale/pg-aiguide)의 `postgres` 스킬이 더 적합하다 — 저장소 README의 스킬 선택 가이드 참조.
+이 스킬은 **성능 문제의 발견과 검증**에 집중한다. 스키마 설계, 안전한 마이그레이션 절차(잠금 수준, `NOT VALID`, 배치 백필), 쿼리 작성 규칙 등 작성·설계 단계의 작업은 이 스킬의 범위 밖이다.
