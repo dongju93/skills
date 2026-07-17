@@ -1,0 +1,54 @@
+{
+  "skill_name": "docker-authoring",
+  "evals": [
+    {
+      "id": 0,
+      "name": "fastapi-postgres-redis-dev-reload",
+      "prompt": "FastAPI 프로젝트를 도커라이즈해줘. Postgres랑 Redis를 쓰고, 개발할 때는 코드 수정하면 컨테이너에 바로 반영되면 좋겠어. requirements.txt 쓰는 프로젝트야.",
+      "expected_output": "멀티스테이지 Dockerfile(non-root, 캐시 친화적 레이어 순서), compose.yaml(postgres/redis healthcheck + depends_on condition, dev hot-reload), .dockerignore, .env.example",
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "node-dev-prod-override-split",
+      "prompt": "Node.js Express API인데 dev랑 prod 설정을 분리해서 docker compose 구성해줘. dev는 핫리로드, prod는 리소스 제한 걸고 최적화 빌드로. npm 쓰고 lock 파일 있어.",
+      "expected_output": "멀티스테이지 Dockerfile, base compose.yaml + compose.override.yaml(dev) + compose.prod.yaml(리소스 제한) 오버라이드 패턴, 실행 방법 안내",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "shared-config-anchors-profiles",
+      "prompt": "마이크로서비스 3개(api, worker, scheduler)가 같은 이미지 기반인데 실행 커맨드만 달라. 공통 설정(로깅, env, restart 정책)이 중복되지 않게 compose 작성해줘. DB는 postgres고, pgadmin은 필요할 때만 띄우고 싶어.",
+      "expected_output": "x-* extension field + YAML anchor로 공통 설정 공유, 서비스별 command 차등, pgadmin은 profiles로 분리, postgres healthcheck",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "exit-137-evidence-first-diagnosis",
+      "prompt": "종료된 컨테이너가 exit code 137이야. 메모리 부족이 원인인지 확인하고 원인만 알려줘. 파일은 수정하지 마.",
+      "expected_output": "137만으로 OOM을 확정하지 않고 State.OOMKilled, 메모리 제한/사용량, 로그와 종료 시각을 확인하는 읽기 전용 진단. 확인된 원인과 가설을 구분하고 파일이나 Docker 상태를 변경하지 않음",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "safe-disk-usage-audit",
+      "prompt": "Docker가 디스크를 너무 많이 써. 뭐가 차지하는지 확인해서 안전하게 정리할 순서를 알려줘. 데이터 볼륨은 절대 지우면 안 돼.",
+      "expected_output": "docker system df -v와 Buildx/컨테이너/볼륨별 사용량을 먼저 확인하고 공유 레이어를 고려함. 삭제 범위와 위험을 설명하며 승인 없이 prune을 실행하지 않고 볼륨 삭제를 명시적으로 배제함",
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "compose-health-restart-correction",
+      "prompt": "서비스가 unhealthy가 되면 자동 재시작하게 healthcheck랑 depends_on을 compose에 넣어줘.",
+      "expected_output": "healthcheck는 상태 보고, depends_on condition은 시작 순서, restart policy는 프로세스 종료 후 복구라는 차이를 설명함. unhealthy만으로 자동 재시작되지 않는 점을 명시하고 요구사항에 맞는 안전한 대안을 제시함",
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "evidence-based-hardening-audit",
+      "prompt": "현재 compose 스택을 보안 점검하고 전부 Docker Hardened Images로 바꿀 수 있는지 검토해줘. 우선 검토만 하고 수정은 하지 마.",
+      "expected_output": "런타임 사용자, 권한, 마운트, 공개 포트, 네트워크, secrets, 이미지 출처와 스캔/서명 근거를 점검함. 각 이미지의 호환 가능한 DHI 존재 여부와 마이그레이션 제약을 검증하며 수정하지 않음",
+      "files": []
+    }
+  ]
+}
