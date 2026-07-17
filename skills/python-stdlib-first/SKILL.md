@@ -37,6 +37,8 @@ Every third-party dependency adds installation friction, supply-chain surface, v
 
 **Scope:** stdlib-first applies to **runtime** dependencies (code that ships or runs in production). For **dev tooling** — test frameworks, linters, formatters, type checkers, packaging/build tools — follow the project's established toolchain (e.g. pytest/ruff/uv). Those tools do not ship to production; team convention outweighs supply-chain purity.
 
+**Calibration:** Treat the reference entries as decision prompts, not unconditional substitutions. Preserve required semantics and project conventions; when a recommendation changes cancellation, failure, security, persistence, or portability behavior, verify the target-version docs before applying it.
+
 Stdlib is **sufficient** when it covers the functional requirement with acceptable clarity and performance, even if a third-party API would be marginally more ergonomic. Marginal ergonomics do not justify a dependency.
 
 Third-party is **justified** when any of these hold:
