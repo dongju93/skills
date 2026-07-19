@@ -59,6 +59,46 @@ Do not emit the obsolete `X-XSS-Protection: 1; mode=block` header.
 
 Official Nginx reference: [Headers module](https://nginx.org/en/docs/http/ngx_http_headers_module.html).
 
+## Start complete files from a working baseline
+
+When the deliverable is a complete `nginx.conf`, minimalism removes unproven tuning — not the directives a working server requires. Snippets included into an existing tree inherit these from the parent file; verify with `nginx -T` instead of re-declaring them.
+
+```nginx
+worker_processes auto;
+
+events {
+}
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+    sendfile      on;
+    tcp_nopush    on;
+
+    server_tokens off;
+
+    # server blocks or conf.d includes per the deployment's packaging
+}
+```
+
+- Omitting `include mime.types;` makes every response fall back to `default_type`, which silently breaks content types and the `nosniff` guidance elsewhere in this skill.
+- `tcp_nopush` acts only while `sendfile` is on; pair them. Leave `tcp_nodelay` at its default of `on`.
+- `server_tokens off` removes the version from the `Server` header and error pages; it is baseline hardening, not tuning.
+- Keep the `keepalive_timeout` default unless a fronting load balancer's idle timeout requires Nginx's to be longer (see the ALB deployment profile).
+- Enable gzip at `http` level when the workload serves compressible text-like payloads:
+
+  ```nginx
+  gzip on;
+  gzip_vary on;
+  gzip_min_length 1024;
+  gzip_types text/css application/javascript application/json image/svg+xml text/plain application/xml;
+  ```
+
+  `text/html` is always compressed and must not be listed. Keep `gzip_comp_level` at its default unless CPU-versus-bytes measurements justify raising it. Do not compress responses that reflect secrets beside attacker-influenced content (BREACH), and keep compression off SSE/streaming locations where it delays small frames. Brotli and zstd require optional modules — confirm with `nginx -V` before emitting their directives.
+
+- Deliberately omitted, not forgotten: `use epoll` (Nginx selects the optimal event method per platform automatically), `multi_accept` (not generally recommended), `open_file_cache`, buffer-size tables, and cipher strings. Add these only from the evidence-driven sections below.
+
 ## Tune from constraints
 
 - Start with `worker_processes auto` only when producing a complete configuration and the deployment has not intentionally constrained workers elsewhere.
@@ -66,7 +106,7 @@ Official Nginx reference: [Headers module](https://nginx.org/en/docs/http/ngx_ht
 - Leave proxy buffering enabled for ordinary responses; tune buffers only after observing headers, response sizes, memory, and temporary-file I/O.
 - Choose timeouts for connection establishment, inter-read gaps, inter-write gaps, and client behavior separately. `proxy_read_timeout` measures the gap between reads, not total request duration.
 - Set per-route request-body limits. Raising a global limit increases exposure and temporary-storage demand.
-- Enable compression only for appropriate MIME types and payload sizes. Avoid double compression and secrets reflected beside attacker-controlled content.
+- Enable compression per the baseline section above; avoid double compression when a CDN, the application, or precompressed assets already provide it.
 - Define log formats with request ID, status, timings, upstream address/status/time, bytes, host, method, and URI as operationally needed. Exclude credentials, tokens, sensitive query strings, and unnecessary personal data.
 
 ## Treat rate limiting as product policy

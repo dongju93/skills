@@ -40,7 +40,7 @@ If a missing value materially changes routing, trust, or TLS behavior, ask one c
 - Read [applications.md](references/applications.md) for FastAPI, Next.js, Django, Spring Boot, or generic upstream decisions.
 - Read [deployments.md](references/deployments.md) for on-premises, VM, Docker/Compose, EC2, ALB, or Kubernetes topology.
 - Read [services.md](references/services.md) for files, API gateways, uploads, caching, load balancing, WebSocket, SSE, streaming, and gRPC.
-- Read [configuration-principles.md](references/configuration-principles.md) for directive contexts, proxy URI behavior, headers, TLS, limits, logging, and version compatibility.
+- Read [configuration-principles.md](references/configuration-principles.md) for directive contexts, the complete-`nginx.conf` baseline, proxy URI behavior, headers, TLS, limits, logging, and version compatibility.
 
 Read every reference whose condition applies. Combine profiles; do not choose only one when, for example, a Next.js service on EC2 behind an ALB also streams responses.
 
@@ -63,6 +63,7 @@ Make each of these choices explicit:
 ## Compose a self-consistent configuration
 
 - Match the existing packaging. Do not put `events` or `http` inside a file already included from `http`.
+- When the deliverable is a complete `nginx.conf`, start from the working baseline in [configuration-principles.md](references/configuration-principles.md): MIME-type includes, `sendfile` with `tcp_nopush`, `server_tokens off`, and conditional gzip. Minimalism removes unproven tuning, not the directives a working server needs.
 - Put `map`, `upstream`, cache zones, log formats, and rate-limit zones only in valid contexts.
 - Prefer explicit upstream names and stable service discovery. Bind host-local application servers to loopback or Unix sockets when appropriate; use container DNS names inside container networks.
 - Forward the original host, scheme, client identity, and request ID only through a defined trust boundary. Clear or replace spoofable headers at the public edge; do not append an untrusted client-supplied forwarding chain.
@@ -81,7 +82,7 @@ Avoid stale cargo-cult settings:
 - Do not invent a generic CSP containing `'unsafe-inline'`.
 - Do not add `includeSubDomains` or `preload` to HSTS without confirming the entire domain tree is HTTPS-ready.
 - Do not override Next.js or application cache headers with extension-wide regex rules.
-- Do not set `client_max_body_size`, long timeouts, worker counts, buffers, compression, or cipher lists to arbitrary “high performance” values.
+- Do not set `client_max_body_size`, long timeouts, worker counts, buffers, compression levels, or cipher lists to arbitrary “high performance” values.
 - Do not hardcode an Nginx image version unless the repository or user owns that pin.
 
 ## Validate in the target environment

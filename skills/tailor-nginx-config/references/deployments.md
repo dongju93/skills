@@ -17,7 +17,7 @@ Model the request path from the public client to the application. The correct TL
 - Mount the complete configuration tree and required certificates read-only. Confirm that included paths exist inside the container.
 - Test with the same image digest or tag used by deployment; directives and default behavior vary by version and build.
 - Keep only Nginx public. Place application services on an internal network unless direct host exposure is intentional.
-- Account for container DNS and upstream lifecycle. A name resolved only at Nginx startup may become stale when task IPs change; choose upstream resolution or orchestration accordingly.
+- Account for container DNS and upstream lifecycle. A name resolved only at Nginx startup may become stale when task IPs change. For re-resolution, set a `resolver` (Docker's embedded DNS is `127.0.0.11`) and use a variable in `proxy_pass` — noting that variables change `proxy_pass` URI handling — or rely on an orchestration-stable address.
 - Add a meaningful health check and a graceful stop period. `depends_on` start order does not prove application readiness.
 - Do not bake private keys into an image layer.
 

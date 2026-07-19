@@ -6,7 +6,7 @@ Combine all profiles used by the application. Apply special behavior to the narr
 
 - Use `root` when the URI is naturally appended to a directory; use `alias` when the location prefix maps to a different filesystem prefix. Match trailing slashes on both sides.
 - Use `try_files` for actual routing behavior: `=404` for ordinary files, or the application entry point only for a true client-routed SPA.
-- Enable `sendfile` when the operating system and storage make it appropriate. Do not add AIO, `directio`, or thread-pool tuning without file sizes, storage behavior, and module support.
+- Enable `sendfile` when the operating system and storage make it appropriate, and pair it with `tcp_nopush`. Do not add AIO, `directio`, or thread-pool tuning without file sizes, storage behavior, and module support.
 - Apply `immutable` only to content-addressed filenames. Keep HTML and mutable manifests short-lived or revalidated.
 - Preserve correct MIME types and `nosniff`. Avoid a broad extension regex that captures dynamic framework routes.
 - Precompressed assets require matching build artifacts and module support; do not enable them merely because compression sounds faster.
