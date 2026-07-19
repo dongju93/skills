@@ -1,6 +1,6 @@
 ---
 name: tailor-nginx-config
-description: Design, generate, review, and troubleshoot production Nginx configurations that are tailored to the application runtime, deployment topology, and traffic behavior. Use when Codex needs to configure Nginx for FastAPI, Next.js, Django, Spring Boot, or another HTTP application; deploy on premises, on a VM, in Docker or Compose, on AWS EC2 with or without an ALB, or behind another trusted proxy; or support static and protected files, reverse proxying, API gateways, uploads, caching, load balancing, WebSockets, SSE, streaming responses, or gRPC. Also use for nginx.conf and conf.d reviews, TLS termination, forwarded-client-IP handling, rate limiting, security headers, performance tuning, syntax validation, and safe reload planning.
+description: Design, generate, review, and troubleshoot production Nginx configurations that are tailored to the application runtime, deployment topology, and traffic behavior. Use when Codex needs to configure Nginx for FastAPI, Next.js, Django, Spring Boot, or another HTTP application; deploy on premises, on a VM, with Docker, Podman, Compose, or another container platform, on AWS EC2 with or without an ALB, or behind another trusted proxy; or support static and protected files, reverse proxying, API gateways, uploads, caching, load balancing, WebSockets, SSE, streaming responses, or gRPC. Also use for nginx.conf and conf.d reviews, TLS termination, forwarded-client-IP handling, rate limiting, security headers, performance tuning, syntax validation, and safe reload planning.
 ---
 
 # Tailor Nginx Configuration
@@ -20,25 +20,25 @@ Inspect the repository and deployment artifacts before asking questions. Look fo
 
 - application manifests and settings (`pyproject.toml`, `package.json`, `manage.py`, `settings.py`, `pom.xml`, `application.yml`);
 - process commands, ports, Unix sockets, health endpoints, path prefixes, static roots, upload limits, and graceful-shutdown behavior;
-- `Dockerfile`, Compose, systemd, cloud-init, Terraform, CDK, CloudFormation, Kubernetes, load-balancer, CDN, and DNS configuration;
+- `Dockerfile`, `Containerfile`, Compose, Quadlet, systemd, cloud-init, Terraform, CDK, CloudFormation, Kubernetes, load-balancer, CDN, and DNS configuration;
 - existing `nginx.conf`, `conf.d`, included snippets, image tags, compiled modules, certificate automation, and log conventions;
 - routes using WebSocket, SSE, streaming SSR, gRPC, long polling, large request bodies, byte ranges, or protected downloads.
 
 Resolve these decision inputs:
 
 1. **Application:** runtime/framework, production server, upstream address, base path, static/media ownership, and framework proxy settings.
-2. **Topology:** client-facing hops in order, Nginx placement, network reachability, service discovery, instance count, and health checks.
+2. **Topology:** client-facing hops in order, Nginx placement, network reachability, service discovery, instance count, and health checks. For container deployments, identify the engine or platform, Compose implementation or orchestrator, rootless or rootful mode, and network mode.
 3. **Protocol:** HTTP versions on each hop, TLS termination point, WebSocket/SSE/gRPC needs, and connection lifetime.
 4. **Traffic:** request rate, concurrency, body and response sizes, latency budget, caching semantics, and abuse-sensitive routes.
 5. **Trust:** accepted hostnames, trusted proxy CIDRs or security groups, authentication boundary, and which layer owns headers and rate limits.
 6. **Packaging:** whether the target is a complete `nginx.conf`, a file under `conf.d`, a site file, an image template, or an ingress-specific resource.
 
-If a missing value materially changes routing, trust, or TLS behavior, ask one concise question. If work can safely continue, state the assumption and use a clearly marked placeholder. Do not claim runtime validation while a required placeholder remains.
+If a missing value materially changes routing, trust, or TLS behavior, ask one concise question. When container deployment is known but the platform is not, ask which engine or platform runs it (for example, Docker Engine, Podman, or an orchestrator) before choosing DNS resolver addresses, host aliases, network names, bind-mount options, port-publishing behavior, or validation commands. Do not infer Docker merely from a Docker-compatible image or Compose file. If work can safely continue, state the assumption and use a clearly marked placeholder. Do not claim runtime validation while a required placeholder remains.
 
 ## Load only the relevant guidance
 
 - Read [applications.md](references/applications.md) for FastAPI, Next.js, Django, Spring Boot, or generic upstream decisions.
-- Read [deployments.md](references/deployments.md) for on-premises, VM, Docker/Compose, EC2, ALB, or Kubernetes topology.
+- Read [deployments.md](references/deployments.md) for on-premises, VM, Docker, Podman, Compose, EC2, ALB, or Kubernetes topology.
 - Read [services.md](references/services.md) for files, API gateways, uploads, caching, load balancing, WebSocket, SSE, streaming, and gRPC.
 - Read [configuration-principles.md](references/configuration-principles.md) for directive contexts, the complete-`nginx.conf` baseline, proxy URI behavior, headers, TLS, limits, logging, and version compatibility.
 

@@ -11,15 +11,24 @@ Model the request path from the public client to the application. The correct TL
 - Preserve the host's log rotation, service user, SELinux/AppArmor policy, file ownership, and socket permissions.
 - Log `$remote_addr` directly unless another trusted proxy actually precedes Nginx.
 
-## Docker or Compose
+## Container engine or Compose deployment
 
-- Use the service DNS name and container port, not `localhost`, when Nginx and the application are separate containers.
+- Identify the actual engine or platform before emitting configuration. Ask the user when repository artifacts do not distinguish Docker Engine, Podman, or another runtime. Also identify the Compose provider or orchestrator, rootless or rootful operation, whether services share a pod or network namespace, and the network driver.
+- Do not infer Docker from a `Dockerfile`, `Containerfile`, Docker-compatible image, Compose YAML, or a `docker`-compatible CLI. These artifacts can be used by more than one engine, and `podman compose` delegates to an external Compose provider.
+- Use the runtime's service or network alias and container port when Nginx and the application are separate containers on the same DNS-enabled network. Use `localhost` only when inspection confirms that both processes share a network namespace.
 - Mount the complete configuration tree and required certificates read-only. Confirm that included paths exist inside the container.
 - Test with the same image digest or tag used by deployment; directives and default behavior vary by version and build.
 - Keep only Nginx public. Place application services on an internal network unless direct host exposure is intentional.
-- Account for container DNS and upstream lifecycle. A name resolved only at Nginx startup may become stale when task IPs change. For re-resolution, set a `resolver` (Docker's embedded DNS is `127.0.0.11`) and use a variable in `proxy_pass` — noting that variables change `proxy_pass` URI handling — or rely on an orchestration-stable address.
+- Account for container DNS and upstream lifecycle. A name resolved only at Nginx startup may become stale when task IPs change. For re-resolution, use a runtime-supported Nginx pattern and an observed resolver address, or rely on an orchestration-stable address. If a variable is used in `proxy_pass`, account for its changed URI handling.
+- Derive platform-specific values instead of substituting Docker defaults:
+  - **Docker Engine:** on a user-defined network, service discovery uses Docker's embedded DNS at `127.0.0.11`. Confirm the attached network and inspect `/etc/resolv.conf` inside the deployed Nginx container before setting `resolver 127.0.0.11`.
+  - **Podman:** confirm the network backend and whether DNS is enabled with `podman network inspect`; Netavark networks normally use `aardvark-dns` for container names and aliases. Read the resolver from the deployed container's `/etc/resolv.conf`; do not copy Docker's `127.0.0.11`, because Podman resolver details vary with rootless/rootful networking, the selected network, and `podman machine`.
+  - **Other engines or orchestrators:** inspect their service discovery, DNS, namespace, mount, and published-port behavior and use only documented or observed values.
+- Match operational settings to the selected engine. Use its actual CLI for inspection and validation, its network and service names, and its bind-mount security semantics. For Podman on SELinux hosts, decide whether a bind mount needs `:z` or `:Z`; for rootless operation, verify UID/GID mapping and permission to publish the requested host ports rather than copying Docker-oriented values.
 - Add a meaningful health check and a graceful stop period. `depends_on` start order does not prove application readiness.
 - Do not bake private keys into an image layer.
+
+Official references: [Docker networking and embedded DNS](https://docs.docker.com/engine/network/), [Podman network DNS](https://docs.podman.io/en/stable/markdown/podman-network.1.html), [Podman Compose providers](https://docs.podman.io/en/stable/markdown/podman-compose.1.html), and [Podman run and bind-mount options](https://docs.podman.io/en/stable/markdown/podman-run.1.html).
 
 ## AWS EC2 directly exposed
 
