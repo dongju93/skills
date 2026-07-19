@@ -1,0 +1,26 @@
+{
+  "Id": "a1b2c3d4e5f6",
+  "Name": "/api",
+  "State": {
+    "Status": "exited",
+    "Running": false,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 0,
+    "ExitCode": 137,
+    "Error": "",
+    "StartedAt": "2026-07-18T01:10:00.000000000Z",
+    "FinishedAt": "2026-07-18T01:12:03.000000000Z"
+  },
+  "HostConfig": {
+    "Memory": 268435456,
+    "MemorySwap": 268435456,
+    "NanoCpus": 1000000000
+  },
+  "Config": {
+    "Image": "demo/api:latest",
+    "Cmd": ["node", "server.js"]
+  }
+}

@@ -1,0 +1,51 @@
+# Seed compose for shared-config / profiles evals. Intentionally repetitive.
+services:
+  api:
+    image: demo/app:latest
+    command: ["python", "-m", "app.api"]
+    environment:
+      LOG_LEVEL: info
+      DATABASE_URL: postgres://app:app@postgres:5432/app
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+    depends_on:
+      - postgres
+
+  worker:
+    image: demo/app:latest
+    command: ["python", "-m", "app.worker"]
+    environment:
+      LOG_LEVEL: info
+      DATABASE_URL: postgres://app:app@postgres:5432/app
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+    depends_on:
+      - postgres
+
+  scheduler:
+    image: demo/app:latest
+    command: ["python", "-m", "app.scheduler"]
+    environment:
+      LOG_LEVEL: info
+      DATABASE_URL: postgres://app:app@postgres:5432/app
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
+    # No healthcheck yet — eval should add one.

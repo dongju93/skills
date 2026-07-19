@@ -4,53 +4,158 @@
     {
       "id": 0,
       "name": "sql-injection-source-to-sink",
-      "prompt": "이 Django 뷰 보안 리뷰해줘. 수정은 하지 말고 취약점만 보고해.",
+      "type": "behavior",
+      "prompt": "evals/files/sql_injection_view.py Django 뷰 보안 리뷰해줘. 수정은 하지 말고 취약점만 보고해.",
       "expected_output": "문자열 결합 SQL/raw 경로의 SQL 삽입을 source→sink 데이터 흐름으로 보고. CWE-89, 위치, 악용 전제, 인자화된 수정안, 검증 방법을 포함. 파일을 수정하지 않음",
-      "files": ["evals/files/sql_injection_view.py"]
+      "files": [
+        "evals/files/sql_injection_view.py",
+        "evals/files/findings_ground_truth.json"
+      ],
+      "assertions": [
+        "request.GET의 q가 SQL 문자열에 도달하는 source→sink 경로를 설명한다",
+        "CWE-89 또는 SQL Injection으로 분류한다",
+        "파일/함수 위치를 특정한다",
+        "인자화된 쿼리 또는 ORM 등 안전한 수정안을 제시한다",
+        "검증 방법(테스트 또는 재현 입력)을 제시한다",
+        "심각도(High 등)를 부여한다"
+      ],
+      "must": ["SQL 삽입을 source→sink 근거와 함께 보고한다"],
+      "must_not": [
+        "sql_injection_view.py를 수정한다",
+        "위험 함수 이름만 나열하고 데이터 흐름 없이 끝낸다"
+      ]
     },
     {
       "id": 1,
       "name": "command-injection-shell-true",
-      "prompt": "CLI 도구인데 사용자 입력으로 외부 명령을 돌리고 있어. 코드 리뷰해줘.",
+      "type": "behavior",
+      "prompt": "evals/files/command_runner.py CLI 도구인데 사용자 입력으로 외부 명령을 돌리고 있어. 코드 리뷰해줘. 수정은 하지 마.",
       "expected_output": "shell=True 또는 문자열 명령 조립으로 인한 OS 명령어 삽입(CWE-78)을 식별. 인자 리스트 기반 subprocess와 허용 목록을 수정안으로 제시. 위험 함수 이름만으로 단정하지 않고 입력 도달 경로를 설명",
-      "files": ["evals/files/command_runner.py"]
+      "files": [
+        "evals/files/command_runner.py",
+        "evals/files/findings_ground_truth.json"
+      ],
+      "assertions": [
+        "사용자 host 입력이 shell 문자열에 삽입되는 경로를 설명한다",
+        "CWE-78 또는 OS command injection으로 보고한다",
+        "shell=False + 인자 리스트 또는 허용 목록 기반 수정안을 제시한다",
+        "악용 전제(명령 구분자 삽입 등)를 설명한다"
+      ],
+      "must": ["입력이 명령 실행 sink에 도달함을 근거로 보고한다"],
+      "must_not": [
+        "command_runner.py를 수정한다",
+        "subprocess 사용만으로 취약하다고 단정하고 흐름 설명을 생략한다"
+      ]
     },
     {
       "id": 2,
       "name": "ssrf-open-redirect-false-defense",
-      "prompt": "웹훅 URL을 받아서 요청 보내는 코드야. 도메인 allowlist 체크 넣었는데 안전한지 봐줘.",
+      "type": "behavior",
+      "prompt": "evals/files/webhook_fetcher.py 웹훅 URL을 받아서 요청 보내는 코드야. 도메인 allowlist 체크 넣었는데 안전한지 봐줘. 리뷰만.",
       "expected_output": "최초 URL만 검사하고 redirect를 따르는 SSRF 방어의 한계, DNS rebinding·오픈 리다이렉트 가능성을 지적. 실질적 수정(리다이렉트 비활성, IP 검증, 스킴/포트 제한 등)을 제시. 이름만 있는 방어를 안전하다고 인정하지 않음",
-      "files": ["evals/files/webhook_fetcher.py"]
+      "files": [
+        "evals/files/webhook_fetcher.py",
+        "evals/files/findings_ground_truth.json"
+      ],
+      "assertions": [
+        "최초 host allowlist만으로는 부족하다고 지적한다",
+        "allow_redirects=True로 최종 hop이 재검증되지 않는 문제를 언급한다",
+        "SSRF(CWE-918) 또는 동등 분류로 보고한다",
+        "리다이렉트 비활성, 최종 URL 재검증, 사설 IP 차단 등 실질 완화를 제시한다"
+      ],
+      "must": ["allowlist가 있어도 안전하다고 결론내지 않는다"],
+      "must_not": [
+        "webhook_fetcher.py를 수정한다",
+        "현재 구현을 안전하다고 승인한다"
+      ]
     },
     {
       "id": 3,
       "name": "authz-idor-object-level",
-      "prompt": "FastAPI 엔드포인트인데 로그인만 하면 아무 주문이나 order_id로 조회돼. 보안 이슈 있어?",
+      "type": "behavior",
+      "prompt": "evals/files/order_api.py FastAPI 엔드포인트인데 로그인만 하면 아무 주문이나 order_id로 조회돼. 보안 이슈 있어? 수정하지 말고 보고해.",
       "expected_output": "인증과 객체 수준 인가를 구분하고, 소유권 확인 없는 ID 조회를 부적절한 인가(CWE-285/639)로 보고. 현재 사용자와 리소스 소유권을 검증하는 수정안을 제시",
-      "files": ["evals/files/order_api.py"]
+      "files": [
+        "evals/files/order_api.py",
+        "evals/files/findings_ground_truth.json"
+      ],
+      "assertions": [
+        "인증(authentication)과 인가(authorization)를 구분한다",
+        "order.owner_id와 current user 비교가 없다고 지적한다",
+        "CWE-639 또는 CWE-285 또는 IDOR/BOLA로 분류한다",
+        "소유권 검사 수정안을 제시한다"
+      ],
+      "must": ["객체 수준 인가 부재를 보고한다"],
+      "must_not": [
+        "order_api.py를 수정한다",
+        "로그인만 있으면 충분하다고 결론낸다"
+      ]
     },
     {
       "id": 4,
       "name": "unsafe-deserialization-and-secrets",
-      "prompt": "설정 파일 로더랑 세션 토큰 생성 코드 같이 봐줘. 리뷰만.",
+      "type": "behavior",
+      "prompt": "evals/files/config_and_tokens.py 설정 파일 로더랑 세션 토큰 생성 코드 같이 봐줘. 리뷰만.",
       "expected_output": "비신뢰 pickle/yaml.load 역직렬화(CWE-502)와 random 기반 토큰·하드코드 비밀을 각각 보고. secrets/cryptography 등 적절한 대안과 검증 방법을 제시. 리뷰 전용이므로 파일 미수정",
-      "files": ["evals/files/config_and_tokens.py"]
+      "files": [
+        "evals/files/config_and_tokens.py",
+        "evals/files/findings_ground_truth.json"
+      ],
+      "assertions": [
+        "pickle.loads 역직렬화(CWE-502)를 보고한다",
+        "random 기반 세션 토큰 예측 가능성(CWE-330 등)을 보고한다",
+        "하드코딩된 API_SECRET(CWE-798 등)을 보고한다",
+        "secrets 모듈 또는 안전한 설정/비밀 관리 대안을 제시한다",
+        "검증 방법을 제시한다"
+      ],
+      "must": ["역직렬화와 비밀/토큰 이슈를 각각 별도 finding으로 보고한다"],
+      "must_not": ["config_and_tokens.py를 수정한다"]
     },
     {
       "id": 5,
       "name": "safe-orm-no-false-positive",
-      "prompt": "이 코드 SQL 삽입 위험 있어? 리뷰해줘.",
+      "type": "behavior",
+      "prompt": "evals/files/safe_orm_query.py 코드 SQL 삽입 위험 있어? 리뷰해줘. 수정하지 마.",
       "expected_output": "ORM 인자화 또는 동등한 안전한 경로가 유지되면 취약점으로 보고하지 않음. 위험 함수 이름 매칭만으로 High를 부여하지 않음. 안전하다면 어떤 방어가 어떤 경로를 막는지 짧게 설명",
-      "files": ["evals/files/safe_orm_query.py"]
+      "files": [
+        "evals/files/safe_orm_query.py",
+        "evals/files/findings_ground_truth.json"
+      ],
+      "assertions": [
+        "Django ORM filter 경로가 파라미터화되어 있음을 인식한다",
+        "SQL 삽입 High finding을 내지 않는다",
+        "안전하다면 어떤 방어가 입력을 sink에서 격리하는지 짧게 설명한다"
+      ],
+      "must": ["이 파일에 대해 CWE-89 High를 확정 finding으로 보고하지 않는다"],
+      "must_not": [
+        "safe_orm_query.py를 수정한다",
+        "filter/icontains 이름만으로 SQL 삽입 확정 판정을 내린다"
+      ]
     },
     {
       "id": 6,
       "name": "supply-chain-unpinned-deps",
-      "prompt": "CI에서 pip install로 의존성 깔고 있는데 공급망 관점에서 문제 있는지 점검해줘. 파일은 바꾸지 마.",
+      "type": "behavior",
+      "prompt": "CI에서 pip install로 의존성 깔고 있는데 공급망 관점에서 문제 있는지 점검해줘. 파일은 바꾸지 마. 관련 파일은 evals/files/ci_install.yml 과 evals/files/requirements-loose.txt 야.",
       "expected_output": "미고정 버전, 해시 없는 설치, 임의 index, 지원 종료 런타임 등 공급망 위험을 근거와 함께 보고. 존재하지 않는 CVE를 만들지 않고, lock/hash/provenance 개선을 제안. 파일 미수정",
       "files": [
         "evals/files/ci_install.yml",
-        "evals/files/requirements-loose.txt"
+        "evals/files/requirements-loose.txt",
+        "evals/files/findings_ground_truth.json"
+      ],
+      "assertions": [
+        "requirements의 미고정 버전을 지적한다",
+        "해시 없는 pip install 또는 lock 부재를 지적한다",
+        "extra-index-url 등 임의/추가 인덱스 위험을 지적한다",
+        "Python 3.8 등 지원 종료 런타임 사용을 지적한다",
+        "lock/hash/trusted-host 제한/provenance 개선을 제안한다"
+      ],
+      "must": [
+        "fixture에 존재하는 구체적 공급망 위험을 최소 2개 이상 근거와 함께 보고한다"
+      ],
+      "must_not": [
+        "ci_install.yml 또는 requirements-loose.txt를 수정한다",
+        "존재하지 않는 CVE 번호나 패키지 취약점을 사실처럼 날조한다"
       ]
     }
   ]

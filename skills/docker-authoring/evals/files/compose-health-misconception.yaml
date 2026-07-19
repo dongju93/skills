@@ -1,0 +1,7 @@
+# User wants unhealthy services to auto-restart via healthcheck + depends_on.
+services:
+  api:
+    image: demo/api:latest
+    ports:
+      - "8080:8080"
+    # Intentionally incomplete — agent should not claim this restarts on unhealthy.

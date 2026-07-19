@@ -4,51 +4,137 @@
     {
       "id": 0,
       "name": "simple-http-prefer-urllib",
+      "type": "behavior",
       "prompt": "설정 서버에서 JSON 한 번 GET해서 파싱하는 짧은 스크립트 짜줘. 의존성 최소화하고 싶어. Python 3.12 기준.",
       "expected_output": "urllib.request + json 등 stdlib로 구현. requests를 기본 선택하지 않음. 대상 버전이 결정에 영향을 주면 명시",
-      "files": []
+      "files": [],
+      "assertions": [
+        "urllib.request 또는 동등 stdlib HTTP 클라이언트를 사용한다",
+        "json 모듈로 응답을 파싱한다",
+        "requests/httpx를 runtime 의존성으로 추가하지 않는다",
+        "Python 3.12 대상임을 전제로 한 구현이다"
+      ],
+      "must": ["stdlib만으로 GET+JSON 파싱을 구현한다"],
+      "must_not": ["requests를 기본 선택으로 도입한다"]
     },
     {
       "id": 1,
       "name": "toml-read-write-version-boundary",
-      "prompt": "pyproject.toml 읽고 일부 필드를 수정해서 다시 쓰는 유틸이 필요해. requires-python은 >=3.10이야.",
+      "type": "behavior",
+      "prompt": "evals/files/pyproject-310.toml 을 읽고 일부 필드를 수정해서 다시 쓰는 유틸이 필요해. requires-python은 >=3.10이야.",
       "expected_output": "읽기는 3.11+ tomllib, 쓰기는 stdlib에 없음을 구분. 3.10 지원이면 tomli 등 읽기 대안과 쓰기용 서드파티를 한 줄 근거와 함께 선택. 존재하지 않는 stdlib TOML writer를 주장하지 않음",
-      "files": ["evals/files/pyproject-310.toml"]
+      "files": ["evals/files/pyproject-310.toml"],
+      "assertions": [
+        "3.10에서는 stdlib tomllib가 없음을 반영한다",
+        "TOML 쓰기는 stdlib에 없다고 구분한다",
+        "읽기/쓰기에 선택한 라이브러리를 버전 근거와 함께 제시한다",
+        "존재하지 않는 stdlib toml 쓰기 API를 만들어내지 않는다"
+      ],
+      "must": ["3.10 지원 전제에서 tomllib-only 해법을 단정하지 않는다"],
+      "must_not": ["stdlib에 TOML writer가 있다고 주장한다"]
     },
     {
       "id": 2,
       "name": "encryption-not-hashlib",
+      "type": "behavior",
       "prompt": "사용자 데이터를 AES로 암호화/복호화하는 모듈 만들어줘. stdlib로 할 수 있으면 그걸로.",
       "expected_output": "hashlib/hmac만으로 암호화를 구현하지 않음. cryptography 등 검증된 라이브러리를 쓰고, stdlib는 hashing·secrets 수준임을 한 줄로 정당화",
-      "files": []
+      "files": [],
+      "assertions": [
+        "cryptography 등 검증된 암호화 라이브러리를 사용한다",
+        "stdlib는 hashing/hmac/secrets 수준이라고 정당화한다",
+        "AES 암호화 모듈의 공개 API(encrypt/decrypt)를 제공한다"
+      ],
+      "must": ["실제 AES 암호화를 검증된 라이브러리로 구현한다"],
+      "must_not": [
+        "hashlib 또는 hmac만으로 AES 암호화를 구현한다",
+        "수제 AES/RSA를 stdlib 바이트 연산으로 작성한다"
+      ]
     },
     {
       "id": 3,
       "name": "project-already-uses-requests",
-      "prompt": "기존 코드베이스에 HTTP 호출 하나 더 추가해줘. 다른 API 엔드포인트 치는 거야.",
+      "type": "behavior",
+      "prompt": "evals/files/project_with_requests 코드베이스에 HTTP 호출 하나 더 추가해줘. 다른 API 엔드포인트(/orders/{id}) 치는 거야. 의존성 최소화하고 싶긴 한데 기존 스타일 맞춰줘.",
       "expected_output": "프로젝트가 이미 requests로 표준화되어 있으면 urllib 스타일을 새로 넣지 않고 기존 관례를 따름. 순수성만을 이유로 병렬 HTTP 스택을 도입하지 않음",
-      "files": ["evals/files/project_with_requests/"]
+      "files": [
+        "evals/files/project_with_requests/client.py",
+        "evals/files/project_with_requests/pyproject.toml"
+      ],
+      "assertions": [
+        "기존 client.py의 requests 사용 패턴을 따른다",
+        "orders 조회 함수 또는 동등 호출이 추가된다",
+        "urllib 기반 병렬 HTTP 스택을 새로 도입하지 않는다"
+      ],
+      "must": ["프로젝트의 기존 requests 관례를 유지한다"],
+      "must_not": [
+        "stdlib 순수성만을 이유로 requests 호출 옆에 urllib 클라이언트를 새로 표준화한다"
+      ]
     },
     {
       "id": 4,
       "name": "user-explicit-package-honored",
+      "type": "behavior",
       "prompt": "httpx로 비동기 GET 재시도 포함해서 클라이언트 짜줘. tenacity도 써도 돼.",
       "expected_output": "사용자가 명시한 httpx(및 허용한 tenacity)로 구현. stdlib로 바꾸지 않음. 대안 언급이 있어도 한 문장 이내로 짧게",
-      "files": []
+      "files": [],
+      "assertions": [
+        "httpx 비동기 클라이언트로 구현한다",
+        "재시도 로직이 있다(tenacity 또는 동등)",
+        "사용자가 요청한 스택을 교체하지 않는다"
+      ],
+      "must": ["httpx로 구현한다"],
+      "must_not": ["요청을 urllib/asyncio만으로 바꿔 버린다"]
     },
     {
       "id": 5,
       "name": "removed-module-python-313",
+      "type": "behavior",
       "prompt": "Python 3.13 타깃으로 간단한 CGI 폼 파서 헬퍼 만들어줘.",
       "expected_output": "3.13에서 제거된 cgi 등 PEP 594 모듈을 사용하지 않음. 대체 구현 또는 지원 버전/접근을 명시하고 제거된 모듈 import를 생성하지 않음",
-      "files": []
+      "files": [],
+      "assertions": [
+        "cgi 모듈을 import하지 않는다",
+        "3.13에서 동작 가능한 대체 접근(직접 파싱, 다른 API, 버전 제약 고지 등)을 제시한다",
+        "대상이 3.13임을 반영한다"
+      ],
+      "must": ["Python 3.13에서 제거된 cgi를 사용하지 않는다"],
+      "must_not": ["import cgi 코드를 생성한다"]
     },
     {
       "id": 6,
       "name": "dev-tooling-not-stdlib-mandate",
-      "prompt": "이 프로젝트 테스트 러너를 unittest로 바꿀까, pytest 유지할까? 의존성 줄이려고.",
+      "type": "behavior",
+      "prompt": "evals/files/project_with_pytest 프로젝트 테스트 러너를 unittest로 바꿀까, pytest 유지할까? 의존성 줄이려고.",
       "expected_output": "dev tooling은 프로젝트 관례 우선. runtime stdlib-first를 이유로 pytest를 강제로 unittest로 바꾸지 않음. 팀 도구 체인 유지를 권고",
-      "files": ["evals/files/project_with_pytest/"]
+      "files": [
+        "evals/files/project_with_pytest/pyproject.toml",
+        "evals/files/project_with_pytest/tests/test_smoke.py"
+      ],
+      "assertions": [
+        "pytest가 dev tooling임을 구분한다",
+        "기존 pytest 도구 체인 유지를 권고한다",
+        "runtime stdlib-first 규칙을 dev 러너 교체 근거로 쓰지 않는다"
+      ],
+      "must": ["pytest를 unittest로 강제 교체하지 않는다"],
+      "must_not": [
+        "의존성 최소화만을 이유로 프로젝트 테스트 스위트를 unittest로 재작성하라고 단정한다"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "untrusted-xml-not-stdlib-default",
+      "type": "behavior",
+      "prompt": "외부 파트너가 보내는 비신뢰 XML 웹훅 바디를 파싱해야 해. stdlib로 할 수 있으면 그걸로 파서 유틸 짜줘.",
+      "expected_output": "비신뢰 XML에 xml.etree를 안전 기본값으로 권장하지 않음. defusedxml 등 하드닝된 경로 또는 명시적 위험 고지와 대안을 제시",
+      "files": ["evals/files/xml_untrusted_input.md"],
+      "assertions": [
+        "비신뢰 XML에서 stdlib ElementTree 기본 파서의 한계/위험을 언급한다",
+        "defusedxml 또는 동등한 하드닝 경로를 권장한다",
+        "구현 또는 권고가 비신뢰 입력을 전제로 한다"
+      ],
+      "must": ["비신뢰 XML에 일반 xml.etree를 안전하다고 단정하지 않는다"],
+      "must_not": ["stdlib xml.etree만으로 비신뢰 XML이 안전하다고 결론낸다"]
     }
   ]
 }

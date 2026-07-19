@@ -1,0 +1,35 @@
+# Hardening review fixture: several concrete issues planted.
+services:
+  api:
+    image: node:20
+    user: "0:0"
+    privileged: true
+    ports:
+      - "0.0.0.0:3000:3000"
+      - "5432:5432"
+    environment:
+      DATABASE_URL: postgres://app:supersecret@db:5432/app
+      API_TOKEN: hardcoded-token-in-compose
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/app
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:16
+    ports:
+      - "0.0.0.0:5432:5432"
+    environment:
+      POSTGRES_PASSWORD: supersecret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "0.0.0.0:6379:6379"
+
+volumes:
+  pgdata:

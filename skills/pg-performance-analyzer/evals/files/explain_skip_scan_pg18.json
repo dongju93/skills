@@ -1,0 +1,29 @@
+[
+  {
+    "Plan": {
+      "Node Type": "Index Scan",
+      "Parallel Aware": false,
+      "Scan Direction": "Forward",
+      "Index Name": "idx_users_status_email",
+      "Relation Name": "users",
+      "Alias": "users",
+      "Startup Cost": 0.42,
+      "Total Cost": 88.5,
+      "Plan Rows": 40,
+      "Plan Width": 64,
+      "Actual Startup Time": 0.08,
+      "Actual Total Time": 12.4,
+      "Actual Rows": 40,
+      "Actual Loops": 1,
+      "Index Cond": "(email = 'alice@example.com'::text)",
+      "Index Searches": 12,
+      "Shared Hit Blocks": 60,
+      "Shared Read Blocks": 4,
+      "Shared Dirtied Blocks": 0,
+      "Shared Written Blocks": 0
+    },
+    "Planning Time": 0.3,
+    "Triggers": [],
+    "Execution Time": 12.6
+  }
+]

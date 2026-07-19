@@ -1,0 +1,91 @@
+{
+  "sql-injection-source-to-sink": {
+    "expected_findings": [
+      {
+        "cwe": "CWE-89",
+        "location": "sql_injection_view.py:user_search",
+        "severity": "High",
+        "notes": "f-string SQL with request.GET q"
+      }
+    ],
+    "false_positive_if_reported": []
+  },
+  "command-injection-shell-true": {
+    "expected_findings": [
+      {
+        "cwe": "CWE-78",
+        "location": "command_runner.py:ping_host",
+        "severity": "High",
+        "notes": "shell=True with user host interpolation"
+      }
+    ]
+  },
+  "ssrf-open-redirect-false-defense": {
+    "expected_findings": [
+      {
+        "cwe": "CWE-918",
+        "location": "webhook_fetcher.py:fetch_webhook",
+        "severity": "High",
+        "notes": "allowlist on initial URL only; allow_redirects=True"
+      }
+    ]
+  },
+  "authz-idor-object-level": {
+    "expected_findings": [
+      {
+        "cwe": "CWE-639",
+        "location": "order_api.py:get_order",
+        "severity": "High",
+        "notes": "authenticated but no ownership check"
+      }
+    ]
+  },
+  "unsafe-deserialization-and-secrets": {
+    "expected_findings": [
+      {
+        "cwe": "CWE-502",
+        "location": "config_and_tokens.py:load_config",
+        "severity": "High",
+        "notes": "pickle.loads on file bytes"
+      },
+      {
+        "cwe": "CWE-330",
+        "location": "config_and_tokens.py:session_token",
+        "severity": "Medium",
+        "notes": "random.randint for session token"
+      },
+      {
+        "cwe": "CWE-798",
+        "location": "config_and_tokens.py:API_SECRET",
+        "severity": "High",
+        "notes": "hardcoded secret"
+      }
+    ]
+  },
+  "safe-orm-no-false-positive": {
+    "expected_findings": [],
+    "false_positive_if_reported": ["CWE-89"]
+  },
+  "supply-chain-unpinned-deps": {
+    "expected_findings": [
+      {
+        "cwe": "CWE-1104",
+        "location": "requirements-loose.txt",
+        "severity": "Medium",
+        "notes": "unpinned package versions"
+      },
+      {
+        "cwe": "CWE-829",
+        "location": "ci_install.yml",
+        "severity": "Medium",
+        "notes": "extra-index-url to untrusted index; no hashes"
+      },
+      {
+        "cwe": "CWE-1104",
+        "location": "ci_install.yml",
+        "severity": "Medium",
+        "notes": "Python 3.8 EOL runtime in CI"
+      }
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+Images space usage:
+
+REPOSITORY   TAG       IMAGE ID       CREATED        SIZE      SHARED SIZE   UNIQUE SIZE   CONTAINERS
+demo/api     latest    111111111111   2 days ago     1.2GB     800MB         400MB         1
+postgres     16        222222222222   3 weeks ago    450MB     450MB         0B            1
+redis        7         333333333333   3 weeks ago    120MB     120MB         0B            1
+<none>       <none>    444444444444   5 days ago     900MB     700MB         200MB         0
+
+Containers space usage:
+
+CONTAINER ID   IMAGE          COMMAND                  LOCAL VOLUMES   SIZE      CREATED      STATUS                  NAMES
+aaaa1111bbbb   demo/api       "node server.js"         1               12MB      2 days ago   Up 2 days               api
+bbbb2222cccc   postgres:16    "docker-entrypoint.s…"   1               4MB       2 days ago   Up 2 days               db
+cccc3333dddd   redis:7        "docker-entrypoint.s…"   0               1MB       2 days ago   Up 2 days               cache
+
+Local Volumes space usage:
+
+VOLUME NAME   LINKS     SIZE
+pgdata        1         18.4GB
+redis-data    0         120MB
+build-cache   0         2.1GB
+
+Build cache usage: 6.8GB
