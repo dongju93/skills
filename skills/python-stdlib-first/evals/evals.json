@@ -1,0 +1,54 @@
+{
+  "skill_name": "python-stdlib-first",
+  "evals": [
+    {
+      "id": 0,
+      "name": "simple-http-prefer-urllib",
+      "prompt": "설정 서버에서 JSON 한 번 GET해서 파싱하는 짧은 스크립트 짜줘. 의존성 최소화하고 싶어. Python 3.12 기준.",
+      "expected_output": "urllib.request + json 등 stdlib로 구현. requests를 기본 선택하지 않음. 대상 버전이 결정에 영향을 주면 명시",
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "toml-read-write-version-boundary",
+      "prompt": "pyproject.toml 읽고 일부 필드를 수정해서 다시 쓰는 유틸이 필요해. requires-python은 >=3.10이야.",
+      "expected_output": "읽기는 3.11+ tomllib, 쓰기는 stdlib에 없음을 구분. 3.10 지원이면 tomli 등 읽기 대안과 쓰기용 서드파티를 한 줄 근거와 함께 선택. 존재하지 않는 stdlib TOML writer를 주장하지 않음",
+      "files": ["evals/files/pyproject-310.toml"]
+    },
+    {
+      "id": 2,
+      "name": "encryption-not-hashlib",
+      "prompt": "사용자 데이터를 AES로 암호화/복호화하는 모듈 만들어줘. stdlib로 할 수 있으면 그걸로.",
+      "expected_output": "hashlib/hmac만으로 암호화를 구현하지 않음. cryptography 등 검증된 라이브러리를 쓰고, stdlib는 hashing·secrets 수준임을 한 줄로 정당화",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "project-already-uses-requests",
+      "prompt": "기존 코드베이스에 HTTP 호출 하나 더 추가해줘. 다른 API 엔드포인트 치는 거야.",
+      "expected_output": "프로젝트가 이미 requests로 표준화되어 있으면 urllib 스타일을 새로 넣지 않고 기존 관례를 따름. 순수성만을 이유로 병렬 HTTP 스택을 도입하지 않음",
+      "files": ["evals/files/project_with_requests/"]
+    },
+    {
+      "id": 4,
+      "name": "user-explicit-package-honored",
+      "prompt": "httpx로 비동기 GET 재시도 포함해서 클라이언트 짜줘. tenacity도 써도 돼.",
+      "expected_output": "사용자가 명시한 httpx(및 허용한 tenacity)로 구현. stdlib로 바꾸지 않음. 대안 언급이 있어도 한 문장 이내로 짧게",
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "removed-module-python-313",
+      "prompt": "Python 3.13 타깃으로 간단한 CGI 폼 파서 헬퍼 만들어줘.",
+      "expected_output": "3.13에서 제거된 cgi 등 PEP 594 모듈을 사용하지 않음. 대체 구현 또는 지원 버전/접근을 명시하고 제거된 모듈 import를 생성하지 않음",
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "dev-tooling-not-stdlib-mandate",
+      "prompt": "이 프로젝트 테스트 러너를 unittest로 바꿀까, pytest 유지할까? 의존성 줄이려고.",
+      "expected_output": "dev tooling은 프로젝트 관례 우선. runtime stdlib-first를 이유로 pytest를 강제로 unittest로 바꾸지 않음. 팀 도구 체인 유지를 권고",
+      "files": ["evals/files/project_with_pytest/"]
+    }
+  ]
+}

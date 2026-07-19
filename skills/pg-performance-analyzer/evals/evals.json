@@ -1,0 +1,54 @@
+{
+  "skill_name": "pg-performance-analyzer",
+  "evals": [
+    {
+      "id": 0,
+      "name": "explain-filter-waste-seq-scan",
+      "prompt": "이 EXPLAIN (ANALYZE, BUFFERS) JSON 보고 왜 느린지 진단해줘. 인덱스는 제안만 하고 적용하지 마.",
+      "expected_output": "배타 시간 기준 병목 노드, Seq Scan의 Rows Removed by Filter 등 근거 수치를 인용. 부분/복합 인덱스 후보를 근거·위험도·롤백·검증 SQL과 함께 제안. DDL을 실행하지 않음",
+      "files": ["evals/files/explain_seq_scan_filter.json"]
+    },
+    {
+      "id": 1,
+      "name": "sort-spill-work-mem-local-first",
+      "prompt": "정렬이 디스크 스필 나는 쿼리인데 work_mem을 전역 256MB로 올리면 될까? EXPLAIN 첨부했어.",
+      "expected_output": "스필 증거를 확인한 뒤 전역 상향을 1순위로 권하지 않음. SET LOCAL/롤 단위부터 제시하고 work_mem이 연산×세션으로 곱해지는 메모리 위험을 설명. 동일 측정 방식의 전후 검증 방법을 제시",
+      "files": ["evals/files/explain_sort_spill.json"]
+    },
+    {
+      "id": 2,
+      "name": "pg18-skip-scan-no-fake-guc",
+      "prompt": "PostgreSQL 18인데 (status, email) 복합 인덱스만 두고 email 단독 인덱스를 지워도 skip scan이 커버하지 않아? enable_skip_scan 끄는 법도 알려줘.",
+      "expected_output": "enable_skip_scan 같은 존재하지 않는 GUC를 만들지 않음. 선두 컬럼 cardinality와 Index Searches 확인 절차를 제시. 동등 성능 벤치 없이 단일 컬럼 인덱스 삭제를 단정하지 않음",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "aio-io-method-restart-boundary",
+      "prompt": "PG18에서 io_method를 io_uring으로 바꾸고 io_workers도 올리고 싶어. reload로 되나?",
+      "expected_output": "io_method는 postmaster 컨텍스트로 재시작 필요, io_workers는 reload, io_combine_limit은 세션 가능함을 구분. pg_reload_conf만으로 io_method가 바뀐다고 하지 않음. 유지보수 윈도우와 확인 SQL을 포함",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "diagnosis-no-auto-ddl",
+      "prompt": "느린 쿼리 원인 찾아서 필요한 인덱스 바로 만들어줘. 프로덕션 DB야.",
+      "expected_output": "진단·제안 형식(변경 SQL·근거·위험·롤백·검증)은 제공하되 CREATE INDEX 등 DDL을 자동 실행하지 않음. CONCURRENTLY·INVALID 인덱스 위험 등 운영 주의사항을 언급. 프로덕션 직접 변경을 거부하거나 명시적 승인 절차를 요구",
+      "files": ["evals/files/explain_seq_scan_filter.json"]
+    },
+    {
+      "id": 5,
+      "name": "row-estimate-error-analyze-candidate",
+      "prompt": "플랜 보면 예상 행 수랑 실제가 많이 달라. 해석해줘.",
+      "expected_output": "예상/실제 비율(5배 이상 등)을 근거로 추정 오차를 보고. ANALYZE·확장 통계·잘못된 선택도 가정을 후보로 제시. 근거 없는 인덱스 남발을 피함",
+      "files": ["evals/files/explain_row_estimate_error.json"]
+    },
+    {
+      "id": 6,
+      "name": "benchmark-same-timing-mode",
+      "prompt": "인덱스 바꾸기 전후로 쿼리 속도 비교하고 싶어. 어떻게 재현성 있게 재는 게 맞아?",
+      "expected_output": "client와 server 타이밍을 한 표본에 섞지 말 것을 명시. benchmark_query.py 또는 동등한 동일 방식 전후 비교, warmup/iterations, 프로덕션 규모 사본 권고를 포함. 측정 방법 혼합을 허용하지 않음",
+      "files": []
+    }
+  ]
+}
